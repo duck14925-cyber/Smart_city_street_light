@@ -500,6 +500,7 @@ def create_street_light_route(data=None):
     except frappe.ValidationError:
         raise
     except Exception:
+        frappe.db.rollback()
         frappe.log_error(frappe.get_traceback(), "Create Street Light Route Error")
         frappe.throw("Không thể lưu tuyến đường đèn.")
 
@@ -717,6 +718,7 @@ def generate_street_lights_for_route(data=None):
     except frappe.ValidationError:
         raise
     except Exception:
+        frappe.db.rollback()
         frappe.log_error(frappe.get_traceback(), "Generate Street Lights Error")
         frappe.throw("Không thể tạo chuỗi đèn theo tuyến.")
 
