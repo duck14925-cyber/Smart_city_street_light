@@ -7,6 +7,7 @@ import {
   Cartesian3,
   Color,
   Entity,
+  HeadingPitchRoll,
   HeadingPitchRange,
   HeightReference,
   HorizontalOrigin,
@@ -15,6 +16,7 @@ import {
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
   ShadowMode,
+  Transforms,
   UrlTemplateImageryProvider,
   VerticalOrigin,
   Viewer,
@@ -43,6 +45,19 @@ const ZOOM_3D_THRESHOLD = 2000;
 const CLUSTER_3D_THRESHOLD = 8000;
 const CLUSTER_2D_MAX_ZOOM = 14;
 const FALLBACK_POLE_HEIGHT_M = 10;
+
+const formatDeviceValue = (value?: string | number | null, suffix = '') => {
+  if (value === undefined || value === null || value === '') return 'Chưa cấu hình';
+  return `${value}${suffix}`;
+};
+
+const getPoleHeight = (light: StreetLight) => {
+  const height = Number(light.pole_height_m);
+  return Number.isFinite(height) && height > 0 ? height : FALLBACK_POLE_HEIGHT_M;
+};
+
+const sanitizeImageUrl = (url?: string | null) =>
+  typeof url === 'string' ? url.trim().replace(/"/g, '&quot;') : '';
 
 interface TileConfig {
   url: string;
@@ -132,6 +147,43 @@ const create2DMarkerIcon = (status: string, isSelected: boolean) => {
           background:${color};
           border:2px solid white;
         "></div>
+      </div>
+    `,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+    popupAnchor: [0, -size / 2],
+  });
+};
+
+const create2DLightIcon = (light: StreetLight, isSelected: boolean) => {
+  const iconUrl = sanitizeImageUrl(light.icon_2d_url);
+  if (!iconUrl) return create2DMarkerIcon(light.trang_thai, isSelected);
+
+  const color = getStatusColor(light.trang_thai);
+  const size = isSelected ? 44 : 34;
+  const imageSize = isSelected ? 28 : 22;
+
+  return L.divIcon({
+    className: '',
+    html: `
+      <div style="
+        width:${size}px;
+        height:${size}px;
+        border-radius:9999px;
+        background:white;
+        border:3px solid ${isSelected ? '#2563eb' : color};
+        box-shadow:0 10px 24px ${color}44;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        overflow:hidden;
+      ">
+        <img src="${iconUrl}" alt="" style="
+          width:${imageSize}px;
+          height:${imageSize}px;
+          object-fit:contain;
+          display:block;
+        " />
       </div>
     `,
     iconSize: [size, size],
@@ -418,6 +470,62 @@ const addCesiumBillboardLight = (viewer: Viewer, light: StreetLight, isSelected:
   const statusColor = Color.fromCssColorString(getStatusColor(light.trang_thai));
   const selectedColor = Color.fromCssColorString('#22d3ee');
   const entitySuffix = light.name || light.ma_tai_san;
+  const iconUrl = sanitizeImageUrl(light.icon_2d_url);
+  const billboardEntities: Entity[] = [];
+
+  if (iconUrl) {
+    if (isSelected) {
+      billboardEntities.push(
+        viewer.entities.add({
+          id: toSafeEntityId('billboard-halo', entitySuffix),
+          position: Cartesian3.fromDegrees(longitude, latitude, 12),
+          point: {
+            pixelSize: 34,
+            color: selectedColor.withAlpha(0.18),
+            outlineColor: selectedColor,
+            outlineWidth: 4,
+            heightReference: HeightReference.RELATIVE_TO_GROUND,
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          },
+          properties: { lightName: light.name },
+        })
+      );
+    }
+
+    billboardEntities.push(
+      viewer.entities.add({
+        id: toSafeEntityId('billboard', entitySuffix),
+        name: light.ma_tai_san,
+        position: Cartesian3.fromDegrees(longitude, latitude, 14),
+        billboard: {
+          image: iconUrl,
+          width: isSelected ? 34 : 26,
+          height: isSelected ? 34 : 26,
+          verticalOrigin: VerticalOrigin.CENTER,
+          heightReference: HeightReference.RELATIVE_TO_GROUND,
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+        },
+        label: isSelected
+          ? {
+              text: light.ma_tai_san,
+              font: '800 14px sans-serif',
+              fillColor: Color.WHITE,
+              outlineColor: Color.BLACK,
+              outlineWidth: 4,
+              style: LabelStyle.FILL_AND_OUTLINE,
+              pixelOffset: new Cartesian2(0, -34),
+              verticalOrigin: VerticalOrigin.BOTTOM,
+              horizontalOrigin: HorizontalOrigin.CENTER,
+              heightReference: HeightReference.RELATIVE_TO_GROUND,
+              disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            }
+          : undefined,
+        properties: { lightName: light.name },
+      })
+    );
+
+    return billboardEntities;
+  }
 
   const billboardEntity = viewer.entities.add({
     id: toSafeEntityId('billboard', entitySuffix),
@@ -457,7 +565,7 @@ const addCesiumLight = (viewer: Viewer, light: StreetLight, isSelected: boolean)
   const latitude = light.latitude as number;
   const statusColor = Color.fromCssColorString(getStatusColor(light.trang_thai));
   const selectedColor = Color.fromCssColorString('#22d3ee');
-  const poleHeight = FALLBACK_POLE_HEIGHT_M;
+  const poleHeight = getPoleHeight(light);
   const headHeight = poleHeight + 0.8;
   const headLongitude = longitude + 0.000028;
   const headLatitude = latitude + 0.000012;
@@ -468,6 +576,70 @@ const addCesiumLight = (viewer: Viewer, light: StreetLight, isSelected: boolean)
     poleEntities.push(entity);
     return entity;
   };
+
+  const modelUrl = sanitizeImageUrl(light.model_3d_url);
+  if (modelUrl) {
+    const modelHeight = Number(light.model_height);
+    const bearing = Number(light.model_bearing);
+    const scale = Number(light.model_scale);
+    const position = Cartesian3.fromDegrees(
+      longitude,
+      latitude,
+      Number.isFinite(modelHeight) ? modelHeight : 0
+    );
+
+    addPoleEntity({
+      id: toSafeEntityId('model', entitySuffix),
+      name: light.ma_tai_san,
+      position,
+      orientation: Transforms.headingPitchRollQuaternion(
+        position,
+        new HeadingPitchRoll(CesiumMath.toRadians(Number.isFinite(bearing) ? bearing : 0), 0, 0)
+      ),
+      model: {
+        uri: modelUrl,
+        scale: Number.isFinite(scale) && scale > 0 ? scale : 1,
+        minimumPixelSize: isSelected ? 56 : 38,
+        maximumScale: 80,
+        heightReference: HeightReference.RELATIVE_TO_GROUND,
+        shadows: ShadowMode.DISABLED,
+      },
+      label: isSelected
+        ? {
+            text: light.ma_tai_san,
+            font: '800 14px sans-serif',
+            fillColor: Color.WHITE,
+            outlineColor: Color.BLACK,
+            outlineWidth: 4,
+            style: LabelStyle.FILL_AND_OUTLINE,
+            pixelOffset: new Cartesian2(0, -46),
+            verticalOrigin: VerticalOrigin.BOTTOM,
+            horizontalOrigin: HorizontalOrigin.CENTER,
+            heightReference: HeightReference.RELATIVE_TO_GROUND,
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          }
+        : undefined,
+      properties: { lightName: light.name },
+    });
+
+    if (isSelected) {
+      addPoleEntity({
+        id: toSafeEntityId('model-selected-halo', entitySuffix),
+        position: Cartesian3.fromDegrees(longitude, latitude, 1),
+        point: {
+          pixelSize: 22,
+          color: selectedColor.withAlpha(0.25),
+          outlineColor: selectedColor,
+          outlineWidth: 4,
+          heightReference: HeightReference.RELATIVE_TO_GROUND,
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+        },
+        properties: { lightName: light.name },
+      });
+    }
+
+    return poleEntities;
+  }
 
   addPoleEntity({
     id: toSafeEntityId('base', entitySuffix),
@@ -611,6 +783,9 @@ const LightPopupContent = ({ light }: { light: StreetLight }) => {
         <p>Tuyến đường: {routeName || 'Chưa xác định'}</p>
         <p>Khu vực: {light.ten_khu_vuc || light.khu_vuc || 'Chưa xác định'}</p>
         <p>Trạng thái: {light.trang_thai || 'Không rõ'}</p>
+        <p>Loại thiết bị: {light.device_type_name || light.device_type_code || 'Chưa cấu hình'}</p>
+        <p>Công suất: {formatDeviceValue(light.power_w, 'W')}</p>
+        <p>Chiều cao cột: {formatDeviceValue(light.pole_height_m, 'm')}</p>
         <p>
           Tọa độ: {Number(light.latitude).toFixed(6)}, {Number(light.longitude).toFixed(6)}
         </p>
@@ -1019,6 +1194,12 @@ const Cesium3DMap = ({
             <p>Khu vực: {selectedLight.ten_khu_vuc || selectedLight.khu_vuc || 'Chưa xác định'}</p>
             <p>Trạng thái: {selectedLight.trang_thai || 'Không rõ'}</p>
             <p>
+              Loại thiết bị:{' '}
+              {selectedLight.device_type_name || selectedLight.device_type_code || 'Chưa cấu hình'}
+            </p>
+            <p>Công suất: {formatDeviceValue(selectedLight.power_w, 'W')}</p>
+            <p>Chiều cao cột: {formatDeviceValue(selectedLight.pole_height_m, 'm')}</p>
+            <p>
               Tọa độ: {Number(selectedLight.latitude).toFixed(6)}, {Number(selectedLight.longitude).toFixed(6)}
             </p>
           </div>
@@ -1224,7 +1405,7 @@ const StreetLightTreeMap = ({
                     <Marker
                       key={light.name}
                       position={[light.latitude as number, light.longitude as number]}
-                      icon={create2DMarkerIcon(light.trang_thai, isSelected)}
+                      icon={create2DLightIcon(light, isSelected)}
                       zIndexOffset={isSelected ? 1000 : 0}
                       eventHandlers={{
                         click: () => onSelectLight(light),
@@ -1246,7 +1427,7 @@ const StreetLightTreeMap = ({
               <Marker
                 key={light.name}
                 position={[light.latitude as number, light.longitude as number]}
-                icon={create2DMarkerIcon(light.trang_thai, isSelected)}
+                icon={create2DLightIcon(light, isSelected)}
                 zIndexOffset={isSelected ? 1000 : 0}
                 eventHandlers={{
                   click: () => onSelectLight(light),
