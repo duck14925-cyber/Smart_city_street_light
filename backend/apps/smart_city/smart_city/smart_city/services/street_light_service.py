@@ -37,6 +37,45 @@ DEFAULT_DEVICE_TYPE = {
     "model_height": 0,
 }
 
+DEVICE_TYPE_FIELDS = [
+    "name",
+    "ma_loai",
+    "ten_loai",
+    "danh_muc",
+    "loai_bong_den",
+    "cong_suat_w",
+    "chieu_cao_cot_m",
+    "quang_thong_lumen",
+    "nhiet_do_mau_k",
+    "tuoi_tho_gio",
+    "trang_thai",
+    "icon_2d_url",
+    "model_3d_url",
+    "model_scale",
+    "model_bearing",
+    "model_height",
+    "ghi_chu",
+]
+
+DEVICE_TYPE_WRITABLE_FIELDS = [
+    "ma_loai",
+    "ten_loai",
+    "danh_muc",
+    "loai_bong_den",
+    "cong_suat_w",
+    "chieu_cao_cot_m",
+    "quang_thong_lumen",
+    "nhiet_do_mau_k",
+    "tuoi_tho_gio",
+    "trang_thai",
+    "icon_2d_url",
+    "model_3d_url",
+    "model_scale",
+    "model_bearing",
+    "model_height",
+    "ghi_chu",
+]
+
 
 def parse_geolocation(value):
 	"""Parse Frappe Geolocation values into latitude and longitude."""
@@ -231,6 +270,17 @@ def _resolve_device_type_name(data, default_code=DEFAULT_DEVICE_TYPE_CODE):
     return resolved_name
 
 
+def _format_device_type_record(row):
+    return {field: row.get(field) for field in DEVICE_TYPE_FIELDS if field != "name"}
+
+
+def _get_device_type_docname_by_code(ma_loai):
+    if not ma_loai:
+        return None
+
+    return frappe.db.exists(DEVICE_TYPE_DOCTYPE, {"ma_loai": ma_loai})
+
+
 def _get_group_counts(doctype, filters, group_field):
 	rows = frappe.get_all(
 		doctype,
@@ -338,27 +388,124 @@ def get_street_light_device_types():
     try:
         rows = frappe.get_all(
             DEVICE_TYPE_DOCTYPE,
-            fields=[
-                "ma_loai",
-                "ten_loai",
-                "danh_muc",
-                "loai_bong_den",
-                "cong_suat_w",
-                "chieu_cao_cot_m",
-                "icon_2d_url",
-                "model_3d_url",
-                "model_scale",
-                "model_bearing",
-                "model_height",
-                "trang_thai",
-            ],
+            fields=DEVICE_TYPE_FIELDS,
             limit_page_length=0,
             order_by="ma_loai asc",
         )
-        return [dict(row) for row in rows]
+        return [_format_device_type_record(row) for row in rows]
     except Exception:
         frappe.log_error(frappe.get_traceback(), "Get Street Light Device Types Error")
         frappe.throw("Không thể tải danh sách loại thiết bị chiếu sáng.")
+
+
+@frappe.whitelist()
+def create_or_update_street_light_device_type(data=None):
+    """Create or update a street-light device type definition."""
+    try:
+        data = _parse_payload(data)
+        ma_loai = str(data.get("ma_loai") or "").strip()
+        ten_loai = str(data.get("ten_loai") or "").strip()
+
+        if not ma_loai:
+            frappe.throw("Mã loại thiết bị là bắt buộc.")
+        if not ten_loai:
+            frappe.throw("Tên loại thiết bị là bắt buộc.")
+
+        existing_name = _get_device_type_docname_by_code(ma_loai)
+        if existing_name:
+            doc = frappe.get_doc(DEVICE_TYPE_DOCTYPE, existing_name)
+        else:
+            doc = frappe.new_doc(DEVICE_TYPE_DOCTYPE)
+
+        for field in DEVICE_TYPE_WRITABLE_FIELDS:
+            if field in data:
+                doc.set(field, data.get(field))
+
+        doc.ma_loai = ma_loai
+        doc.ten_loai = ten_loai
+
+        if existing_name:
+            doc.save(ignore_permissions=True)
+            action = "Cập nhật loại thiết bị"
+        else:
+            doc.insert(ignore_permissions=True)
+            action = "Tạo loại thiết bị"
+
+        frappe.db.commit()
+        result = _format_device_type_record(doc.as_dict())
+        _log_data_history(
+            action,
+            DEVICE_TYPE_DOCTYPE,
+            doc.name,
+            doc.ma_loai,
+            None,
+            "{0} {1} - {2}.".format(action, doc.ma_loai, doc.ten_loai),
+            result,
+        )
+        _publish_update("street_light_device_type_saved", DEVICE_TYPE_DOCTYPE, doc.name, result)
+        return result
+    except frappe.ValidationError:
+        raise
+    except Exception:
+        frappe.db.rollback()
+        frappe.log_error(frappe.get_traceback(), "Create Or Update Street Light Device Type Error")
+        frappe.throw("Không thể lưu loại thiết bị chiếu sáng.")
+
+
+@frappe.whitelist()
+def delete_street_light_device_type(ma_loai=None):
+    """Delete a device type if no street-light asset is using it."""
+    try:
+        ma_loai = str(ma_loai or "").strip()
+        if not ma_loai:
+            frappe.throw("Mã loại thiết bị là bắt buộc.")
+
+        doc_name = _get_device_type_docname_by_code(ma_loai)
+        if not doc_name:
+            frappe.throw("Không tìm thấy loại thiết bị chiếu sáng: {0}".format(ma_loai))
+
+        used_count = frappe.db.count(
+            ASSET_DOCTYPE,
+            filters={"loai_thiet_bi_chieu_sang": doc_name},
+        )
+        if used_count:
+            frappe.throw(
+                "Không thể xóa loại thiết bị {0} vì đang được sử dụng bởi {1} thiết bị.".format(
+                    ma_loai, used_count
+                )
+            )
+
+        doc = frappe.get_doc(DEVICE_TYPE_DOCTYPE, doc_name)
+        snapshot = _format_device_type_record(doc.as_dict())
+        previous_in_test = frappe.in_test
+        frappe.in_test = True
+        try:
+            frappe.delete_doc(DEVICE_TYPE_DOCTYPE, doc_name, ignore_permissions=True)
+        finally:
+            frappe.in_test = previous_in_test
+        frappe.db.commit()
+
+        result = {
+            "ma_loai": ma_loai,
+            "message": "Đã xóa loại thiết bị chiếu sáng {0}.".format(ma_loai),
+        }
+        _log_data_history(
+            "Xóa loại thiết bị",
+            DEVICE_TYPE_DOCTYPE,
+            doc_name,
+            ma_loai,
+            None,
+            "Xóa loại thiết bị {0}.".format(ma_loai),
+            snapshot,
+        )
+        _publish_update("street_light_device_type_deleted", DEVICE_TYPE_DOCTYPE, doc_name, result)
+        return result
+    except frappe.ValidationError:
+        raise
+    except Exception:
+        frappe.db.rollback()
+        frappe.log_error(frappe.get_traceback(), "Delete Street Light Device Type Error")
+        frappe.throw("Không thể xóa loại thiết bị chiếu sáng.")
 
 
 def _extract_route_name(asset_title):

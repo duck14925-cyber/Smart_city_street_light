@@ -10,12 +10,12 @@ import TaiNguyenHaTang from './pages/TaiNguyen'; // 1. Bổ sung import file b�
 import StreetLightDashboard from './pages/StreetLightDashboard';
 import StreetLightMap from './pages/StreetLightMap';
 import StreetLightAssets from './pages/StreetLightAssets';
+import StreetLightDeviceTypes from './pages/StreetLightDeviceTypes';
 import StreetLightPlaceholder from './pages/StreetLightPlaceholder';
 
 const streetLightPlaceholderRoutes = [
   { path: '/street-lights/my-work', title: 'Công việc của tôi' },
   { path: '/street-lights/notifications', title: 'Thông báo' },
-  { path: '/street-lights/device-types', title: 'Loại thiết bị' },
   { path: '/street-lights/incidents/new', title: 'Báo cáo sự cố mới' },
   { path: '/street-lights/incidents', title: 'Danh sách sự cố' },
   { path: '/street-lights/categories/severity', title: 'Mức độ sự cố' },
@@ -55,6 +55,7 @@ function App() {
               <Route path="/street-lights/dashboard" element={<StreetLightDashboard />} />
               <Route path="/street-lights/map" element={<StreetLightMap />} />
               <Route path="/street-lights/assets" element={<StreetLightAssets />} />
+              <Route path="/street-lights/device-types" element={<StreetLightDeviceTypes />} />
               {streetLightPlaceholderRoutes.map((route) => (
                 <Route
                   key={route.path}

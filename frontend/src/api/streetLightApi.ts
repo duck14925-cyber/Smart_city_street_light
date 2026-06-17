@@ -121,12 +121,16 @@ export interface StreetLightDeviceType {
   loai_bong_den?: string;
   cong_suat_w?: number;
   chieu_cao_cot_m?: number;
+  quang_thong_lumen?: number;
+  nhiet_do_mau_k?: number;
+  tuoi_tho_gio?: number;
   icon_2d_url?: string;
   model_3d_url?: string;
   model_scale?: number;
   model_bearing?: number;
   model_height?: number;
   trang_thai?: string;
+  ghi_chu?: string;
 }
 
 const DASHBOARD_ENDPOINT =
@@ -153,6 +157,10 @@ const DATA_HISTORY_ENDPOINT =
   '/api/method/smart_city.smart_city.services.street_light_service.get_street_light_data_history';
 const DEVICE_TYPES_ENDPOINT =
   '/api/method/smart_city.smart_city.services.street_light_service.get_street_light_device_types';
+const SAVE_DEVICE_TYPE_ENDPOINT =
+  '/api/method/smart_city.smart_city.services.street_light_service.create_or_update_street_light_device_type';
+const DELETE_DEVICE_TYPE_ENDPOINT =
+  '/api/method/smart_city.smart_city.services.street_light_service.delete_street_light_device_type';
 
 const emptyCharts = {
   lights_by_status: [],
@@ -348,6 +356,39 @@ export const getStreetLightDeviceTypes = async (): Promise<StreetLightDeviceType
     return Array.isArray(payload) ? payload : [];
   } catch (error) {
     console.error('[StreetLightAPI] getStreetLightDeviceTypes failed:', error);
+    throw error;
+  }
+};
+
+export const createOrUpdateStreetLightDeviceType = async (
+  payload: StreetLightDeviceType
+): Promise<StreetLightDeviceType> => {
+  try {
+    const response = await api.post(SAVE_DEVICE_TYPE_ENDPOINT, undefined, {
+      params: {
+        data: JSON.stringify(payload),
+      },
+    });
+    const data = getFrappePayload(response.data);
+
+    return data;
+  } catch (error) {
+    console.error('[StreetLightAPI] createOrUpdateStreetLightDeviceType failed:', error);
+    throw error;
+  }
+};
+
+export const deleteStreetLightDeviceType = async (maLoai: string) => {
+  try {
+    const response = await api.post(DELETE_DEVICE_TYPE_ENDPOINT, undefined, {
+      params: {
+        ma_loai: maLoai,
+      },
+    });
+
+    return getFrappePayload(response.data);
+  } catch (error) {
+    console.error('[StreetLightAPI] deleteStreetLightDeviceType failed:', error);
     throw error;
   }
 };
