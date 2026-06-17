@@ -8,6 +8,7 @@
  "engine": "InnoDB",
  "field_order": [
   "loai_tai_san",
+  "loai_thiet_bi_chieu_sang",
   "ten_tai_san",
   "ma_tai_san",
   "khu_vuc",
@@ -24,6 +25,12 @@
    "label": "Lo\u1ea1i t\u00e0i s\u1ea3n",
    "options": "Camera an ninh\n\u0110\u00e8n chi\u1ebfu s\u00e1ng\nC\u00e2y xanh\nNh\u00e0 s\u01a1 t\u00e1n\nTr\u1ea1m bi\u1ebfn \u00e1p\nTr\u1ea1m b\u01a1m\nKh\u00e1c",
    "reqd": 1
+  },
+  {
+   "fieldname": "loai_thiet_bi_chieu_sang",
+   "fieldtype": "Link",
+   "label": "Loại thiết bị chiếu sáng",
+   "options": "Loai Thiet Bi Chieu Sang"
   },
   {
    "fieldname": "ten_tai_san",

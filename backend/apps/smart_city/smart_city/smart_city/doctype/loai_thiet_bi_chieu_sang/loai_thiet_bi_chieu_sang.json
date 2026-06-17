@@ -1,0 +1,150 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:ma_loai",
+ "creation": "2026-06-17 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "ma_loai",
+  "ten_loai",
+  "danh_muc",
+  "loai_bong_den",
+  "cong_suat_w",
+  "chieu_cao_cot_m",
+  "quang_thong_lumen",
+  "nhiet_do_mau_k",
+  "tuoi_tho_gio",
+  "trang_thai",
+  "icon_2d_url",
+  "model_3d_url",
+  "model_scale",
+  "model_bearing",
+  "model_height",
+  "ghi_chu"
+ ],
+ "fields": [
+  {
+   "fieldname": "ma_loai",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Mã loại",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "ten_loai",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Tên loại",
+   "reqd": 1
+  },
+  {
+   "fieldname": "danh_muc",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Danh mục",
+   "options": "Đèn chiếu sáng\nTủ điều khiển\nCột đèn\nĐèn trang trí\nThiết bị khác"
+  },
+  {
+   "fieldname": "loai_bong_den",
+   "fieldtype": "Select",
+   "label": "Loại bóng đèn",
+   "options": "LED\nSodium\nHalogen\nSolar LED\nKhác"
+  },
+  {
+   "fieldname": "cong_suat_w",
+   "fieldtype": "Float",
+   "label": "Công suất (W)"
+  },
+  {
+   "fieldname": "chieu_cao_cot_m",
+   "fieldtype": "Float",
+   "label": "Chiều cao cột (m)"
+  },
+  {
+   "fieldname": "quang_thong_lumen",
+   "fieldtype": "Float",
+   "label": "Quang thông (lumen)"
+  },
+  {
+   "fieldname": "nhiet_do_mau_k",
+   "fieldtype": "Int",
+   "label": "Nhiệt độ màu (K)"
+  },
+  {
+   "fieldname": "tuoi_tho_gio",
+   "fieldtype": "Int",
+   "label": "Tuổi thọ (giờ)"
+  },
+  {
+   "default": "Hoạt động",
+   "fieldname": "trang_thai",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Trạng thái",
+   "options": "Hoạt động\nNgừng sử dụng"
+  },
+  {
+   "fieldname": "icon_2d_url",
+   "fieldtype": "Data",
+   "label": "Icon 2D URL"
+  },
+  {
+   "fieldname": "model_3d_url",
+   "fieldtype": "Data",
+   "label": "Model 3D URL"
+  },
+  {
+   "default": "1",
+   "fieldname": "model_scale",
+   "fieldtype": "Float",
+   "label": "Model scale"
+  },
+  {
+   "default": "0",
+   "fieldname": "model_bearing",
+   "fieldtype": "Float",
+   "label": "Model bearing"
+  },
+  {
+   "default": "0",
+   "fieldname": "model_height",
+   "fieldtype": "Float",
+   "label": "Model height"
+  },
+  {
+   "fieldname": "ghi_chu",
+   "fieldtype": "Small Text",
+   "label": "Ghi chú"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-06-17 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Smart City",
+ "name": "Loai Thiet Bi Chieu Sang",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

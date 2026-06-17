@@ -11,6 +11,7 @@ AREA_DOCTYPE = "Khu Vuc"
 INCIDENT_DOCTYPE = "Bao Cao Van De"
 ROUTE_DOCTYPE = "Tuyen Duong Den"
 DATA_HISTORY_DOCTYPE = "Lich Su Du Lieu Den"
+DEVICE_TYPE_DOCTYPE = "Loai Thiet Bi Chieu Sang"
 
 STREET_LIGHT_ASSET_TYPE = "Đèn chiếu sáng"
 STREET_LIGHT_INCIDENT_TYPE = "Đèn đường hỏng"
@@ -19,6 +20,22 @@ LIGHT_STATUS_OPTIONS = ("Hoạt động", "Hỏng", "Bảo trì")
 INCIDENT_STATUS_OPTIONS = ("Mới", "Đang xử lý", "Đã giải quyết", "Đã đóng")
 OPEN_INCIDENT_STATUSES = ("Mới", "Đang xử lý")
 RESOLVED_INCIDENT_STATUSES = ("Đã giải quyết", "Đã đóng")
+
+DEFAULT_DEVICE_TYPE_CODE = "DEN-LED-9M"
+DEFAULT_DEVICE_TYPE = {
+    "device_type": None,
+    "device_type_code": DEFAULT_DEVICE_TYPE_CODE,
+    "device_type_name": "Đèn LED cao áp 9m",
+    "device_category": "Đèn chiếu sáng",
+    "lamp_type": "LED",
+    "power_w": 120,
+    "pole_height_m": 9,
+    "icon_2d_url": None,
+    "model_3d_url": None,
+    "model_scale": 1,
+    "model_bearing": 0,
+    "model_height": 0,
+}
 
 
 def parse_geolocation(value):
@@ -141,6 +158,79 @@ def _get_area_names(area_ids):
     return {area.name: area.ten_khu_vuc for area in areas}
 
 
+def _format_device_type(row):
+    if not row:
+        return dict(DEFAULT_DEVICE_TYPE)
+
+    return {
+        "device_type": row.get("name"),
+        "device_type_code": row.get("ma_loai") or DEFAULT_DEVICE_TYPE["device_type_code"],
+        "device_type_name": row.get("ten_loai") or DEFAULT_DEVICE_TYPE["device_type_name"],
+        "device_category": row.get("danh_muc") or DEFAULT_DEVICE_TYPE["device_category"],
+        "lamp_type": row.get("loai_bong_den") or DEFAULT_DEVICE_TYPE["lamp_type"],
+        "power_w": row.get("cong_suat_w") if row.get("cong_suat_w") is not None else DEFAULT_DEVICE_TYPE["power_w"],
+        "pole_height_m": row.get("chieu_cao_cot_m")
+        if row.get("chieu_cao_cot_m") is not None
+        else DEFAULT_DEVICE_TYPE["pole_height_m"],
+        "icon_2d_url": row.get("icon_2d_url"),
+        "model_3d_url": row.get("model_3d_url"),
+        "model_scale": row.get("model_scale")
+        if row.get("model_scale") is not None
+        else DEFAULT_DEVICE_TYPE["model_scale"],
+        "model_bearing": row.get("model_bearing")
+        if row.get("model_bearing") is not None
+        else DEFAULT_DEVICE_TYPE["model_bearing"],
+        "model_height": row.get("model_height")
+        if row.get("model_height") is not None
+        else DEFAULT_DEVICE_TYPE["model_height"],
+    }
+
+
+def _get_device_type_rows(device_type_names):
+    device_type_names = [name for name in set(device_type_names) if name]
+    if not device_type_names:
+        return {}
+
+    rows = frappe.get_all(
+        DEVICE_TYPE_DOCTYPE,
+        filters={"name": ["in", device_type_names]},
+        fields=[
+            "name",
+            "ma_loai",
+            "ten_loai",
+            "danh_muc",
+            "loai_bong_den",
+            "cong_suat_w",
+            "chieu_cao_cot_m",
+            "icon_2d_url",
+            "model_3d_url",
+            "model_scale",
+            "model_bearing",
+            "model_height",
+        ],
+        limit_page_length=0,
+    )
+    return {row.name: row for row in rows}
+
+
+def _resolve_device_type_name(data, default_code=DEFAULT_DEVICE_TYPE_CODE):
+    device_type_name = data.get("loai_thiet_bi_chieu_sang")
+    if device_type_name:
+        if not frappe.db.exists(DEVICE_TYPE_DOCTYPE, device_type_name):
+            frappe.throw("Loại thiết bị chiếu sáng không tồn tại: {0}".format(device_type_name))
+        return device_type_name
+
+    device_type_code = data.get("device_type_code") or default_code
+    if not device_type_code:
+        return None
+
+    resolved_name = frappe.db.exists(DEVICE_TYPE_DOCTYPE, {"ma_loai": device_type_code})
+    if not resolved_name:
+        frappe.throw("Mã loại thiết bị chiếu sáng không tồn tại: {0}".format(device_type_code))
+
+    return resolved_name
+
+
 def _get_group_counts(doctype, filters, group_field):
 	rows = frappe.get_all(
 		doctype,
@@ -240,6 +330,35 @@ def get_street_light_areas():
     except Exception:
         frappe.log_error(frappe.get_traceback(), "Get Street Light Areas Error")
         frappe.throw("Không thể tải danh sách khu vực.")
+
+
+@frappe.whitelist()
+def get_street_light_device_types():
+    """Return street-light device type definitions for 2D/3D rendering."""
+    try:
+        rows = frappe.get_all(
+            DEVICE_TYPE_DOCTYPE,
+            fields=[
+                "ma_loai",
+                "ten_loai",
+                "danh_muc",
+                "loai_bong_den",
+                "cong_suat_w",
+                "chieu_cao_cot_m",
+                "icon_2d_url",
+                "model_3d_url",
+                "model_scale",
+                "model_bearing",
+                "model_height",
+                "trang_thai",
+            ],
+            limit_page_length=0,
+            order_by="ma_loai asc",
+        )
+        return [dict(row) for row in rows]
+    except Exception:
+        frappe.log_error(frappe.get_traceback(), "Get Street Light Device Types Error")
+        frappe.throw("Không thể tải danh sách loại thiết bị chiếu sáng.")
 
 
 def _extract_route_name(asset_title):
@@ -372,6 +491,7 @@ def get_street_lights(khu_vuc=None, trang_thai=None, limit=100):
                 "name",
                 "ma_tai_san",
                 "ten_tai_san",
+                "loai_thiet_bi_chieu_sang",
                 "khu_vuc",
                 "toa_do_gps",
                 "trang_thai",
@@ -382,15 +502,20 @@ def get_street_lights(khu_vuc=None, trang_thai=None, limit=100):
             order_by="modified desc",
         )
         area_names = _get_area_names([row.khu_vuc for row in rows])
+        device_type_rows = _get_device_type_rows(
+            [row.get("loai_thiet_bi_chieu_sang") for row in rows]
+        )
 
-        return [_format_street_light(row, area_names) for row in rows]
+        return [_format_street_light(row, area_names, device_type_rows) for row in rows]
     except Exception:
         frappe.log_error(frappe.get_traceback(), "Get Street Lights Error")
         frappe.throw("Không thể tải danh sách đèn đường.")
 
 
-def _format_street_light(row, area_names):
+def _format_street_light(row, area_names, device_type_rows=None):
     location = parse_geolocation(row.get("toa_do_gps"))
+    device_type_rows = device_type_rows or {}
+    device_info = _format_device_type(device_type_rows.get(row.get("loai_thiet_bi_chieu_sang")))
 
     return {
         "name": row.get("name"),
@@ -405,6 +530,7 @@ def _format_street_light(row, area_names):
         "trang_thai": row.get("trang_thai"),
         "chi_phi_bao_duong": row.get("chi_phi_bao_duong"),
         "ngay_lap_dat": row.get("ngay_lap_dat"),
+        **device_info,
     }
 
 
@@ -424,6 +550,18 @@ def get_street_light_map(khu_vuc=None, trang_thai=None):
                 "latitude": light["latitude"],
                 "longitude": light["longitude"],
                 "trang_thai": light["trang_thai"],
+                "device_type": light.get("device_type"),
+                "device_type_code": light.get("device_type_code"),
+                "device_type_name": light.get("device_type_name"),
+                "device_category": light.get("device_category"),
+                "lamp_type": light.get("lamp_type"),
+                "power_w": light.get("power_w"),
+                "pole_height_m": light.get("pole_height_m"),
+                "icon_2d_url": light.get("icon_2d_url"),
+                "model_3d_url": light.get("model_3d_url"),
+                "model_scale": light.get("model_scale"),
+                "model_bearing": light.get("model_bearing"),
+                "model_height": light.get("model_height"),
             }
             for light in lights
             if light["latitude"] is not None and light["longitude"] is not None
@@ -615,6 +753,7 @@ def create_street_light(data=None):
         longitude = float(data.get("longitude"))
         route_name = str(data.get("route_name")).strip()
         title = data.get("ten_tai_san") or "Đèn chiếu sáng - {0} - {1}".format(route_name, code)
+        device_type_name = _resolve_device_type_name(data)
 
         doc = frappe.get_doc(
             {
@@ -622,6 +761,7 @@ def create_street_light(data=None):
                 "ma_tai_san": code,
                 "ten_tai_san": title,
                 "loai_tai_san": STREET_LIGHT_ASSET_TYPE,
+                "loai_thiet_bi_chieu_sang": device_type_name,
                 "khu_vuc": data.get("khu_vuc"),
                 "toa_do_gps": "{0:.6f},{1:.6f}".format(latitude, longitude),
                 "trang_thai": status,
@@ -633,7 +773,8 @@ def create_street_light(data=None):
         frappe.db.commit()
 
         area_names = _get_area_names([doc.khu_vuc])
-        result = _format_street_light(doc.as_dict(), area_names)
+        device_type_rows = _get_device_type_rows([doc.loai_thiet_bi_chieu_sang])
+        result = _format_street_light(doc.as_dict(), area_names, device_type_rows)
         _log_data_history(
             "Tạo đèn",
             ASSET_DOCTYPE,
@@ -674,6 +815,7 @@ def generate_street_lights_for_route(data=None):
         both_sides = bool(data.get("both_sides"))
         offset = float(data.get("offset") or 0.000035)
         points = _points_along_route(polyline, count, both_sides=both_sides, offset=offset)
+        device_type_name = _resolve_device_type_name(data)
 
         created = []
         skipped = []
@@ -690,6 +832,7 @@ def generate_street_lights_for_route(data=None):
                     "ma_tai_san": code,
                     "ten_tai_san": title,
                     "loai_tai_san": STREET_LIGHT_ASSET_TYPE,
+                    "loai_thiet_bi_chieu_sang": device_type_name,
                     "khu_vuc": route_doc.khu_vuc,
                     "toa_do_gps": "{0:.6f},{1:.6f}".format(point["latitude"], point["longitude"]),
                     "trang_thai": status,
@@ -701,7 +844,13 @@ def generate_street_lights_for_route(data=None):
             created.append(doc.name)
 
         frappe.db.commit()
-        result = {"created": len(created), "skipped": skipped, "route": route_doc.name}
+        result = {
+            "created": len(created),
+            "skipped": skipped,
+            "route": route_doc.name,
+            "device_type": device_type_name,
+            "device_type_code": data.get("device_type_code") or DEFAULT_DEVICE_TYPE_CODE,
+        }
         _log_data_history(
             "Tạo chuỗi đèn",
             ROUTE_DOCTYPE,

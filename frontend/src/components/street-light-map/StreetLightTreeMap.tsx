@@ -42,22 +42,69 @@ const DEFAULT_CENTER: [number, number] = [16.0544, 108.2022];
 const ZOOM_3D_THRESHOLD = 2000;
 const CLUSTER_3D_THRESHOLD = 8000;
 const CLUSTER_2D_MAX_ZOOM = 14;
+const FALLBACK_POLE_HEIGHT_M = 10;
 
-const baseLayers: Record<BaseMapType, { url: string; attribution: string }> = {
-  street: {
+interface TileConfig {
+  url: string;
+  attribution: string;
+  maxZoom?: number;
+}
+
+const tileConfigs: Record<BaseMapType, TileConfig> = {
+  standard: {
     url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
     attribution: '&copy; OpenStreetMap contributors',
+    maxZoom: 19,
+  },
+  light: {
+    url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+    attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+    maxZoom: 20,
+  },
+  dark: {
+    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+    maxZoom: 20,
   },
   satellite: {
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
     attribution: 'Tiles &copy; Esri',
+    maxZoom: 18,
+  },
+  outdoors: {
+    url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+    attribution: '&copy; OpenStreetMap contributors, SRTM | OpenTopoMap',
+    maxZoom: 17,
+  },
+  osm: {
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution: '&copy; OpenStreetMap contributors',
+    maxZoom: 19,
+  },
+  google: {
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution: '&copy; OpenStreetMap contributors. Google fallback: OSM tile không cần token.',
+    maxZoom: 19,
+  },
+  google_satellite: {
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    attribution: 'Tiles &copy; Esri. Google satellite fallback: Esri imagery không cần token.',
+    maxZoom: 18,
+  },
+  arcgis: {
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+    attribution: 'Tiles &copy; Esri',
+    maxZoom: 18,
+  },
+  arcgis_satellite: {
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    attribution: 'Tiles &copy; Esri',
+    maxZoom: 18,
   },
 };
 
-const cesiumLayerUrls: Record<BaseMapType, string> = {
-  street: 'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
-  satellite: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-};
+export const getLeafletTileConfig = (basemap: BaseMapType): TileConfig =>
+  tileConfigs[basemap] ?? tileConfigs.standard;
 
 const create2DMarkerIcon = (status: string, isSelected: boolean) => {
   const color = getStatusColor(status);
@@ -152,12 +199,14 @@ const createPickedLocationIcon = () => {
   });
 };
 
-const createCesiumImageryProvider = (basemap: BaseMapType) => {
+export const getCesiumImageryProvider = (basemap: BaseMapType) => {
+  const config = getLeafletTileConfig(basemap);
+
   return new UrlTemplateImageryProvider({
-    url: cesiumLayerUrls[basemap],
-    credit: basemap === 'satellite' ? 'Tiles © Esri' : '© OpenStreetMap © CARTO',
+    url: config.url.replace('{s}', 'a').replace('{r}', ''),
+    credit: config.attribution,
     enablePickFeatures: false,
-    maximumLevel: basemap === 'satellite' ? 17 : 18,
+    maximumLevel: config.maxZoom ?? 18,
   });
 };
 
@@ -183,6 +232,34 @@ const flyCesiumToLights = (viewer: Viewer, lights: StreetLight[]) => {
       roll: 0,
     },
     duration: 0.9,
+  });
+};
+
+const flyCesiumToPoints = (
+  viewer: Viewer,
+  points: Array<{ latitude: number; longitude: number }>
+) => {
+  if (points.length === 0) return;
+
+  const longitudes = points.map((point) => point.longitude);
+  const latitudes = points.map((point) => point.latitude);
+  const west = Math.min(...longitudes);
+  const east = Math.max(...longitudes);
+  const south = Math.min(...latitudes);
+  const north = Math.max(...latitudes);
+  const centerLongitude = (west + east) / 2;
+  const centerLatitude = (south + north) / 2;
+  const span = Math.max(east - west, north - south);
+  const height = points.length === 1 ? 1200 : Math.min(8500, Math.max(1800, span * 170000));
+
+  viewer.camera.flyTo({
+    destination: Cartesian3.fromDegrees(centerLongitude, centerLatitude, height),
+    orientation: {
+      heading: CesiumMath.toRadians(-28),
+      pitch: CesiumMath.toRadians(-46),
+      roll: 0,
+    },
+    duration: 0.8,
   });
 };
 
@@ -219,7 +296,7 @@ const getEntityPayload = (entityId: unknown) => {
 
   return {
     type: entityId.slice(0, separatorIndex),
-    id: entityId.slice(separatorIndex + 1),
+    id: decodeURIComponent(entityId.slice(separatorIndex + 1)),
   };
 };
 
@@ -258,7 +335,7 @@ const updateVisibilityByCameraHeight = (
 
 const addCesiumCluster = (viewer: Viewer, cluster: StreetLightCluster) => {
   return viewer.entities.add({
-    id: `cluster:${cluster.id}`,
+    id: toSafeEntityId('cluster', cluster.id),
     name: `${cluster.count} đèn`,
     position: Cartesian3.fromDegrees(cluster.longitude, cluster.latitude, 80),
     point: {
@@ -343,7 +420,7 @@ const addCesiumBillboardLight = (viewer: Viewer, light: StreetLight, isSelected:
   const entitySuffix = light.name || light.ma_tai_san;
 
   const billboardEntity = viewer.entities.add({
-    id: `billboard:${entitySuffix}`,
+    id: toSafeEntityId('billboard', entitySuffix),
     name: light.ma_tai_san,
     position: Cartesian3.fromDegrees(longitude, latitude, 12),
     point: {
@@ -380,7 +457,7 @@ const addCesiumLight = (viewer: Viewer, light: StreetLight, isSelected: boolean)
   const latitude = light.latitude as number;
   const statusColor = Color.fromCssColorString(getStatusColor(light.trang_thai));
   const selectedColor = Color.fromCssColorString('#22d3ee');
-  const poleHeight = 10;
+  const poleHeight = FALLBACK_POLE_HEIGHT_M;
   const headHeight = poleHeight + 0.8;
   const headLongitude = longitude + 0.000028;
   const headLatitude = latitude + 0.000012;
@@ -393,7 +470,7 @@ const addCesiumLight = (viewer: Viewer, light: StreetLight, isSelected: boolean)
   };
 
   addPoleEntity({
-    id: `base:${entitySuffix}`,
+    id: toSafeEntityId('base', entitySuffix),
     name: light.ma_tai_san,
     position: Cartesian3.fromDegrees(longitude, latitude, 2),
     point: {
@@ -408,7 +485,7 @@ const addCesiumLight = (viewer: Viewer, light: StreetLight, isSelected: boolean)
   });
 
   addPoleEntity({
-    id: `pole:${entitySuffix}`,
+    id: toSafeEntityId('pole', entitySuffix),
     name: light.ma_tai_san,
     polyline: {
       positions: [
@@ -423,7 +500,7 @@ const addCesiumLight = (viewer: Viewer, light: StreetLight, isSelected: boolean)
   });
 
   addPoleEntity({
-    id: `arm:${entitySuffix}`,
+    id: toSafeEntityId('arm', entitySuffix),
     name: light.ma_tai_san,
     polyline: {
       positions: [
@@ -438,7 +515,7 @@ const addCesiumLight = (viewer: Viewer, light: StreetLight, isSelected: boolean)
   });
 
   addPoleEntity({
-    id: `head:${entitySuffix}`,
+    id: toSafeEntityId('head', entitySuffix),
     name: light.ma_tai_san,
     position: Cartesian3.fromDegrees(headLongitude, headLatitude, headHeight),
     point: {
@@ -468,7 +545,7 @@ const addCesiumLight = (viewer: Viewer, light: StreetLight, isSelected: boolean)
   });
 
   addPoleEntity({
-    id: `light-beam:${entitySuffix}`,
+    id: toSafeEntityId('light-beam', entitySuffix),
     polyline: {
       positions: [
         Cartesian3.fromDegrees(headLongitude, headLatitude, headHeight - 1),
@@ -502,40 +579,106 @@ const MapFocus = ({ light }: { light: StreetLight | null }) => {
   return null;
 };
 
-const FitBoundsOnLoad = ({ lights, fitSignal }: { lights: StreetLight[]; fitSignal: number }) => {
+const PopupSelectionSync = ({
+  selectedLight,
+  lights,
+}: {
+  selectedLight: StreetLight | null;
+  lights: StreetLight[];
+}) => {
   const map = useMap();
-  const fittedRef = useRef(false);
-  const lastFitSignalRef = useRef(-1);
 
   useEffect(() => {
-    if (fittedRef.current || lights.length === 0) return;
+    const selectedStillVisible =
+      selectedLight && lights.some((light) => light.name === selectedLight.name);
 
-    const bounds = L.latLngBounds(
-      lights.map((light) => [light.latitude as number, light.longitude as number])
-    );
+    if (!selectedStillVisible) {
+      map.closePopup();
+    }
+  }, [lights, map, selectedLight]);
 
-    map.fitBounds(bounds, {
-      padding: [56, 56],
-      maxZoom: 17,
-    });
-    fittedRef.current = true;
-    lastFitSignalRef.current = fitSignal;
-  }, [fitSignal, lights, map]);
+  return null;
+};
+
+const LightPopupContent = ({ light }: { light: StreetLight }) => {
+  const routeName = normalizeRouteName(light);
+
+  return (
+    <div className="min-w-[230px] p-1 text-slate-100">
+      <p className="font-mono text-xs font-bold text-blue-300">{light.ma_tai_san}</p>
+      <h3 className="mt-1 text-sm font-bold text-white">{light.ten_tai_san}</h3>
+      <div className="mt-3 space-y-1 text-xs text-slate-200">
+        <p>Tuyến đường: {routeName || 'Chưa xác định'}</p>
+        <p>Khu vực: {light.ten_khu_vuc || light.khu_vuc || 'Chưa xác định'}</p>
+        <p>Trạng thái: {light.trang_thai || 'Không rõ'}</p>
+        <p>
+          Tọa độ: {Number(light.latitude).toFixed(6)}, {Number(light.longitude).toFixed(6)}
+        </p>
+      </div>
+      <button
+        type="button"
+        className="mt-3 w-full rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white"
+      >
+        Xem chi tiết
+      </button>
+    </div>
+  );
+};
+
+const getFitPoints = (lights: StreetLight[], routes: StreetLightRoute[]) => {
+  const lightPoints = lights
+    .filter(hasCoordinates)
+    .map((light) => ({
+      latitude: light.latitude as number,
+      longitude: light.longitude as number,
+    }));
+
+  if (lightPoints.length > 0) return lightPoints;
+
+  return routes.flatMap((route) => route.polyline ?? []);
+};
+
+const FitBoundsOnLoad = ({
+  lights,
+  routes,
+  fitSignal,
+  selectedLight,
+}: {
+  lights: StreetLight[];
+  routes: StreetLightRoute[];
+  fitSignal: number;
+  selectedLight: StreetLight | null;
+}) => {
+  const map = useMap();
+  const lastFitKeyRef = useRef('');
 
   useEffect(() => {
-    if (lights.length === 0 || lastFitSignalRef.current === fitSignal) return;
+    if (selectedLight) return;
 
-    const bounds = L.latLngBounds(
-      lights.map((light) => [light.latitude as number, light.longitude as number])
-    );
+    const fitPoints = getFitPoints(lights, routes);
+    if (fitPoints.length === 0) return;
 
+    const fitKey = `${fitSignal}:${fitPoints
+      .map((point) => `${point.latitude.toFixed(6)},${point.longitude.toFixed(6)}`)
+      .join('|')}`;
+    if (lastFitKeyRef.current === fitKey) return;
+    lastFitKeyRef.current = fitKey;
+
+    if (fitPoints.length === 1) {
+      const point = fitPoints[0];
+      map.setView([point.latitude, point.longitude], 16, {
+        animate: true,
+        duration: 0.55,
+      });
+      return;
+    }
+
+    const bounds = L.latLngBounds(fitPoints.map((point) => [point.latitude, point.longitude]));
     map.fitBounds(bounds, {
-      padding: [56, 56],
-      maxZoom: 17,
+      padding: [72, 72],
+      maxZoom: 16,
     });
-    fittedRef.current = true;
-    lastFitSignalRef.current = fitSignal;
-  }, [fitSignal, lights, map]);
+  }, [fitSignal, lights, map, routes, selectedLight]);
 
   return null;
 };
@@ -627,6 +770,7 @@ const RouteDrawer2D = ({
 interface Cesium3DMapProps {
   lights: StreetLight[];
   routeLines: StreetLightRouteLine[];
+  routes: StreetLightRoute[];
   selectedLight: StreetLight | null;
   basemap: BaseMapType;
   fitSignal: number;
@@ -637,6 +781,7 @@ interface Cesium3DMapProps {
 const Cesium3DMap = ({
   lights,
   routeLines,
+  routes,
   selectedLight,
   basemap,
   fitSignal,
@@ -683,7 +828,7 @@ const Cesium3DMap = ({
         shadows: true,
         shouldAnimate: true,
         skyBox: false,
-        baseLayer: new ImageryLayer(createCesiumImageryProvider(basemap)),
+        baseLayer: new ImageryLayer(getCesiumImageryProvider(basemap)),
       });
 
       viewer.cesiumWidget.showErrorPanel = () => undefined;
@@ -778,7 +923,7 @@ const Cesium3DMap = ({
 
     try {
       viewer.imageryLayers.removeAll(true);
-      viewer.imageryLayers.addImageryProvider(createCesiumImageryProvider(basemap));
+      viewer.imageryLayers.addImageryProvider(getCesiumImageryProvider(basemap));
       setCesiumError('');
     } catch (error) {
       console.error('[Cesium] basemap update failed:', error);
@@ -829,10 +974,13 @@ const Cesium3DMap = ({
 
   useEffect(() => {
     const viewer = viewerRef.current;
-    if (!viewer || lights.length === 0) return;
+    if (!viewer || selectedLight) return;
 
-    flyCesiumToLights(viewer, lights);
-  }, [fitSignal, lights]);
+    const fitPoints = getFitPoints(lights, routes);
+    if (fitPoints.length === 0) return;
+
+    flyCesiumToPoints(viewer, fitPoints);
+  }, [fitSignal, lights, routes, selectedLight]);
 
   useEffect(() => {
     const viewer = viewerRef.current;
@@ -927,7 +1075,26 @@ const StreetLightTreeMap = ({
 }: StreetLightTreeMapProps) => {
   const [showRouteLines, setShowRouteLines] = useState(true);
   const [leafletZoom, setLeafletZoom] = useState(15);
-  const routeLines = useMemo(() => buildRouteLines(lights), [lights]);
+  const routeLines = useMemo(() => {
+    const lineMap = new Map<string, StreetLightRouteLine>();
+
+    savedRoutes.forEach((route) => {
+      if (!route.polyline || route.polyline.length < 2) return;
+      lineMap.set(route.ten_tuyen || route.ma_tuyen || route.name, {
+        route_name: route.ten_tuyen || route.ma_tuyen || route.name,
+        points: route.polyline,
+        count: route.polyline.length,
+      });
+    });
+
+    buildRouteLines(lights).forEach((routeLine) => {
+      if (!lineMap.has(routeLine.route_name)) {
+        lineMap.set(routeLine.route_name, routeLine);
+      }
+    });
+
+    return Array.from(lineMap.values());
+  }, [lights, savedRoutes]);
   const lightClusters = useMemo(
     () => buildLightClusters(lights, '2d', leafletZoom),
     [leafletZoom, lights]
@@ -942,6 +1109,7 @@ const StreetLightTreeMap = ({
 
     return DEFAULT_CENTER;
   }, [lights]);
+  const tileConfig = getLeafletTileConfig(basemap);
 
   return (
     <div className="relative h-full min-h-[720px] w-full">
@@ -949,6 +1117,7 @@ const StreetLightTreeMap = ({
         <Cesium3DMap
           lights={lights}
           routeLines={routeLines}
+          routes={savedRoutes}
           selectedLight={selectedLight}
           basemap={basemap}
           fitSignal={fitSignal}
@@ -957,9 +1126,20 @@ const StreetLightTreeMap = ({
         />
       ) : (
         <MapContainer center={mapCenter} zoom={15} scrollWheelZoom className="h-full min-h-[720px] w-full">
-          <TileLayer attribution={baseLayers[basemap].attribution} url={baseLayers[basemap].url} />
-          <FitBoundsOnLoad lights={lights} fitSignal={fitSignal} />
+          <TileLayer
+            key={basemap}
+            attribution={tileConfig.attribution}
+            url={tileConfig.url}
+            maxZoom={tileConfig.maxZoom}
+          />
+          <FitBoundsOnLoad
+            lights={lights}
+            routes={savedRoutes}
+            fitSignal={fitSignal}
+            selectedLight={selectedLight}
+          />
           <ZoomTracker onZoomChange={setLeafletZoom} />
+          <PopupSelectionSync selectedLight={selectedLight} lights={lights} />
           <LocationPicker2D
             enabled={isPickingLocation && !isDrawingRoute}
             onPickLocation={(location) => onPickLocation?.(location)}
@@ -1049,7 +1229,11 @@ const StreetLightTreeMap = ({
                       eventHandlers={{
                         click: () => onSelectLight(light),
                       }}
-                    />
+                    >
+                      <Popup>
+                        <LightPopupContent light={light} />
+                      </Popup>
+                    </Marker>
                   );
                 }
 
@@ -1057,7 +1241,6 @@ const StreetLightTreeMap = ({
               })
             : lights.map((light) => {
             const isSelected = selectedLight?.name === light.name;
-            const routeName = normalizeRouteName(light);
 
             return (
               <Marker
@@ -1070,24 +1253,7 @@ const StreetLightTreeMap = ({
                 }}
               >
                 <Popup>
-                  <div className="min-w-[230px] p-1 text-slate-100">
-                    <p className="font-mono text-xs font-bold text-blue-300">{light.ma_tai_san}</p>
-                    <h3 className="mt-1 text-sm font-bold text-white">{light.ten_tai_san}</h3>
-                    <div className="mt-3 space-y-1 text-xs text-slate-200">
-                      <p>Tuyến đường: {routeName || 'Chưa xác định'}</p>
-                      <p>Khu vực: {light.ten_khu_vuc || light.khu_vuc || 'Chưa xác định'}</p>
-                      <p>Trạng thái: {light.trang_thai || 'Không rõ'}</p>
-                      <p>
-                        Tọa độ: {Number(light.latitude).toFixed(6)}, {Number(light.longitude).toFixed(6)}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      className="mt-3 w-full rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white"
-                    >
-                      Xem chi tiết
-                    </button>
-                  </div>
+                  <LightPopupContent light={light} />
                 </Popup>
               </Marker>
             );

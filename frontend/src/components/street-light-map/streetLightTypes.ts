@@ -2,7 +2,17 @@ export type StreetLightStatus = 'Hoạt động' | 'Hỏng' | 'Bảo trì' | (st
 
 export type MapMode = '2d' | '3d';
 
-export type BaseMapType = 'street' | 'satellite';
+export type BaseMapType =
+  | 'standard'
+  | 'light'
+  | 'dark'
+  | 'satellite'
+  | 'outdoors'
+  | 'osm'
+  | 'google'
+  | 'google_satellite'
+  | 'arcgis'
+  | 'arcgis_satellite';
 
 export interface StreetLight {
   name: string;
@@ -14,6 +24,17 @@ export interface StreetLight {
   latitude: number | null;
   longitude: number | null;
   trang_thai: StreetLightStatus;
+  device_type_code?: string | null;
+  device_type_name?: string | null;
+  device_category?: string | null;
+  lamp_type?: string | null;
+  power_w?: number | null;
+  pole_height_m?: number | null;
+  icon_2d_url?: string | null;
+  model_3d_url?: string | null;
+  model_scale?: number | null;
+  model_bearing?: number | null;
+  model_height?: number | null;
 }
 
 export interface StreetLightMapFilters {

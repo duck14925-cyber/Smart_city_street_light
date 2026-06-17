@@ -4,12 +4,14 @@ import {
   createStreetLightRoute,
   generateStreetLightsForRoute,
   getStreetLightDataHistory,
+  getStreetLightDeviceTypes,
   getStreetLightMap,
   getStreetLightAreas,
   getStreetLightRoutes,
   getStreetLights,
   type StreetLightAreaOption,
   type StreetLightDataHistoryItem,
+  type StreetLightDeviceType,
 } from '../api/streetLightApi';
 import StreetLightMapSidebar from '../components/street-light-map/StreetLightMapSidebar';
 import StreetLightMapViewLayout from '../components/street-light-map/StreetLightMapViewLayout';
@@ -27,12 +29,24 @@ import {
   buildRouteOptions,
   getStatusColor,
   hasCoordinates,
+  normalizeRouteName,
 } from '../components/street-light-map/streetLightMapUtils';
 
-const baseLayerLabels: Record<BaseMapType, string> = {
-  street: 'Bản đồ',
-  satellite: 'Vệ tinh',
-};
+const BASEMAP_OPTIONS: Array<{ value: BaseMapType; label: string; note?: string }> = [
+  { value: 'standard', label: 'Chuẩn' },
+  { value: 'light', label: 'Sáng chuẩn' },
+  { value: 'dark', label: 'Tối chuẩn' },
+  { value: 'satellite', label: 'Vệ tinh chuẩn' },
+  { value: 'outdoors', label: 'Ngoài trời' },
+  { value: 'osm', label: 'OSM' },
+  { value: 'google', label: 'Google', note: 'fallback OSM' },
+  { value: 'google_satellite', label: 'Google vệ tinh', note: 'fallback Esri' },
+  { value: 'arcgis', label: 'ArcGIS' },
+  { value: 'arcgis_satellite', label: 'ArcGIS vệ tinh' },
+];
+
+const getBaseMapLabel = (baseLayer: BaseMapType) =>
+  BASEMAP_OPTIONS.find((option) => option.value === baseLayer)?.label || 'Chuẩn';
 
 interface MapToolbarProps {
   mapMode: MapMode;
@@ -49,21 +63,48 @@ const MapToolbar = ({
   onBaseLayerChange,
   onFit,
 }: MapToolbarProps) => {
+  const [isBasemapOpen, setIsBasemapOpen] = useState(false);
+
   return (
     <div className="absolute right-4 top-4 z-[500] flex flex-col gap-2 rounded-2xl border border-white/80 bg-white/95 p-2 shadow-xl backdrop-blur sm:flex-row">
-      <div className="flex rounded-xl bg-slate-100 p-1">
-        {(['street', 'satellite'] as BaseMapType[]).map((layer) => (
-          <button
-            key={layer}
-            type="button"
-            onClick={() => onBaseLayerChange(layer)}
-            className={`rounded-lg px-3 py-2 text-xs font-bold transition ${
-              baseLayer === layer ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-white'
-            }`}
-          >
-            {baseLayerLabels[layer]}
-          </button>
-        ))}
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setIsBasemapOpen((value) => !value)}
+          className="flex min-w-[138px] items-center justify-between gap-3 rounded-xl bg-slate-100 px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-200"
+        >
+          <span>{getBaseMapLabel(baseLayer)}</span>
+          <span className={isBasemapOpen ? 'rotate-180 transition' : 'transition'}>⌄</span>
+        </button>
+        {isBasemapOpen ? (
+          <div className="absolute right-0 top-12 z-[550] w-56 overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl">
+            {BASEMAP_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => {
+                  onBaseLayerChange(option.value);
+                  setIsBasemapOpen(false);
+                }}
+                className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left text-xs font-bold transition ${
+                  baseLayer === option.value
+                    ? 'bg-blue-50 text-blue-700'
+                    : 'text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                <span>
+                  {option.label}
+                  {option.note ? (
+                    <span className="ml-1 text-[10px] font-semibold text-slate-400">
+                      ({option.note})
+                    </span>
+                  ) : null}
+                </span>
+                {baseLayer === option.value ? <span>✓</span> : null}
+              </button>
+            ))}
+          </div>
+        ) : null}
       </div>
       <div className="flex rounded-xl bg-slate-100 p-1">
         {(['2d', '3d'] as MapMode[]).map((mode) => (
@@ -109,6 +150,7 @@ const formatDateTime = (value?: string) => {
 };
 
 const STATUS_OPTIONS = ['Hoạt động', 'Hỏng', 'Bảo trì'];
+const DEFAULT_DEVICE_TYPE_CODE = 'DEN-LED-9M';
 
 interface AddLightForm {
   ma_tai_san: string;
@@ -117,6 +159,7 @@ interface AddLightForm {
   latitude: string;
   longitude: string;
   trang_thai: string;
+  device_type_code: string;
 }
 
 interface PickedLocation {
@@ -138,12 +181,31 @@ interface GenerateForm {
   start_index: string;
   both_sides: boolean;
   offset: string;
+  device_type_code: string;
 }
+
+const getDefaultDeviceTypeCode = (deviceTypes: StreetLightDeviceType[]) =>
+  deviceTypes.find((deviceType) => deviceType.ma_loai === DEFAULT_DEVICE_TYPE_CODE)?.ma_loai ||
+  deviceTypes[0]?.ma_loai ||
+  DEFAULT_DEVICE_TYPE_CODE;
+
+const formatDeviceTypeSummary = (deviceType?: StreetLightDeviceType) => {
+  if (!deviceType) return 'Chưa tải được thông tin loại thiết bị.';
+
+  const details = [
+    deviceType.cong_suat_w ? `Công suất ${deviceType.cong_suat_w}W` : '',
+    deviceType.chieu_cao_cot_m ? `Cột ${deviceType.chieu_cao_cot_m}m` : '',
+    deviceType.loai_bong_den ? `Bóng ${deviceType.loai_bong_den}` : '',
+  ].filter(Boolean);
+
+  return details.length > 0 ? details.join(' · ') : 'Chưa có thông số kỹ thuật.';
+};
 
 const StreetLightMap = () => {
   const [lights, setLights] = useState<StreetLight[]>([]);
   const [routes, setRoutes] = useState<StreetLightRoute[]>([]);
   const [areas, setAreas] = useState<StreetLightAreaOption[]>([]);
+  const [deviceTypes, setDeviceTypes] = useState<StreetLightDeviceType[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
@@ -155,7 +217,7 @@ const StreetLightMap = () => {
   });
   const [selectedLight, setSelectedLight] = useState<StreetLight | null>(null);
   const [mapMode, setMapMode] = useState<MapMode>('2d');
-  const [baseLayer, setBaseLayer] = useState<BaseMapType>('street');
+  const [baseLayer, setBaseLayer] = useState<BaseMapType>('standard');
   const [fitSignal, setFitSignal] = useState(0);
   const [showAddModal, setShowAddModal] = useState(false);
   const [savingLight, setSavingLight] = useState(false);
@@ -179,6 +241,7 @@ const StreetLightMap = () => {
     latitude: '',
     longitude: '',
     trang_thai: 'Hoạt động',
+    device_type_code: DEFAULT_DEVICE_TYPE_CODE,
   });
   const [routeForm, setRouteForm] = useState<RouteForm>({
     ma_tuyen: '',
@@ -193,6 +256,7 @@ const StreetLightMap = () => {
     start_index: '1',
     both_sides: true,
     offset: '0.000035',
+    device_type_code: DEFAULT_DEVICE_TYPE_CODE,
   });
 
   const loadLights = useCallback(async (isRefresh = false) => {
@@ -212,12 +276,17 @@ const StreetLightMap = () => {
       const sourceLights = lightList.length > 0 ? lightList : mapLights;
       const mergedLights = sourceLights.map((light) => {
         const mapLight = mapByName.get(light.name);
-        return {
+        const mergedLight = {
           ...light,
           latitude: light.latitude ?? mapLight?.latitude ?? null,
           longitude: light.longitude ?? mapLight?.longitude ?? null,
           ten_khu_vuc: light.ten_khu_vuc ?? mapLight?.ten_khu_vuc,
           route_name: light.route_name ?? mapLight?.route_name,
+        };
+
+        return {
+          ...mergedLight,
+          route_name: normalizeRouteName(mergedLight) || mergedLight.route_name,
         };
       });
 
@@ -259,6 +328,24 @@ const StreetLightMap = () => {
     }
   }, []);
 
+  const loadDeviceTypes = useCallback(async () => {
+    try {
+      const deviceTypeList = await getStreetLightDeviceTypes();
+      const defaultCode = getDefaultDeviceTypeCode(deviceTypeList);
+      setDeviceTypes(deviceTypeList);
+      setAddForm((form) => ({
+        ...form,
+        device_type_code: form.device_type_code || defaultCode,
+      }));
+      setGenerateForm((form) => ({
+        ...form,
+        device_type_code: form.device_type_code || defaultCode,
+      }));
+    } catch {
+      setDeviceTypes([]);
+    }
+  }, []);
+
   const loadHistory = useCallback(async () => {
     setLoadingHistory(true);
     try {
@@ -275,8 +362,9 @@ const StreetLightMap = () => {
     loadLights();
     loadRoutes();
     loadAreas();
+    loadDeviceTypes();
     loadHistory();
-  }, [loadAreas, loadHistory, loadLights, loadRoutes]);
+  }, [loadAreas, loadDeviceTypes, loadHistory, loadLights, loadRoutes]);
 
   const lightsWithCoordinates = useMemo(() => lights.filter(hasCoordinates), [lights]);
 
@@ -289,6 +377,22 @@ const StreetLightMap = () => {
     return optionsFromLights.length > 0 ? optionsFromLights : areas;
   }, [areas, lightsWithCoordinates]);
   const routeOptions = useMemo(() => buildRouteOptions(lightsWithCoordinates), [lightsWithCoordinates]);
+  const selectedAddDeviceType = useMemo(
+    () => deviceTypes.find((deviceType) => deviceType.ma_loai === addForm.device_type_code),
+    [addForm.device_type_code, deviceTypes]
+  );
+  const selectedGenerateDeviceType = useMemo(
+    () => deviceTypes.find((deviceType) => deviceType.ma_loai === generateForm.device_type_code),
+    [deviceTypes, generateForm.device_type_code]
+  );
+  const visibleRoutes = useMemo(() => {
+    return routes.filter((route) => {
+      const matchesArea = filters.khu_vuc ? route.khu_vuc === filters.khu_vuc : true;
+      const matchesRoute = filters.route_name ? route.ten_tuyen === filters.route_name : true;
+
+      return matchesArea && matchesRoute;
+    });
+  }, [filters.khu_vuc, filters.route_name, routes]);
 
   useEffect(() => {
     if (!selectedLight) return;
@@ -395,6 +499,7 @@ const StreetLightMap = () => {
         both_sides: generateForm.both_sides,
         offset: Number(generateForm.offset),
         trang_thai: 'Hoạt động',
+        device_type_code: generateForm.device_type_code || getDefaultDeviceTypeCode(deviceTypes),
       });
       setShowGenerateModal(false);
       await loadLights(true);
@@ -423,12 +528,14 @@ const StreetLightMap = () => {
 
   const openAddModal = () => {
     setAddError('');
+    const defaultDeviceTypeCode = getDefaultDeviceTypeCode(deviceTypes);
     setAddForm((current) => ({
       ...current,
       route_name: filters.route_name || current.route_name || routeOptions[0]?.value || '',
       khu_vuc: filters.khu_vuc || current.khu_vuc || areaOptions[0]?.value || '',
       latitude: selectedLight?.latitude ? String(selectedLight.latitude) : current.latitude,
       longitude: selectedLight?.longitude ? String(selectedLight.longitude) : current.longitude,
+      device_type_code: current.device_type_code || defaultDeviceTypeCode,
     }));
     setShowAddModal(true);
   };
@@ -453,6 +560,7 @@ const StreetLightMap = () => {
         latitude,
         longitude,
         trang_thai: addForm.trang_thai,
+        device_type_code: addForm.device_type_code || getDefaultDeviceTypeCode(deviceTypes),
       });
       setShowAddModal(false);
       setAddForm({
@@ -462,6 +570,7 @@ const StreetLightMap = () => {
         latitude: '',
         longitude: '',
         trang_thai: 'Hoạt động',
+        device_type_code: addForm.device_type_code || getDefaultDeviceTypeCode(deviceTypes),
       });
       setPickedLocation(null);
       await loadLights(true);
@@ -493,7 +602,11 @@ const StreetLightMap = () => {
         type="button"
         onClick={() => {
           setRouteError('');
-          setGenerateForm((form) => ({ ...form, route: form.route || routes[0]?.name || '' }));
+          setGenerateForm((form) => ({
+            ...form,
+            route: form.route || routes[0]?.name || '',
+            device_type_code: form.device_type_code || getDefaultDeviceTypeCode(deviceTypes),
+          }));
           setShowGenerateModal(true);
         }}
         className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-700"
@@ -568,7 +681,7 @@ const StreetLightMap = () => {
         fitSignal={fitSignal}
         isPickingLocation={isPickingLocation}
         pickedLocation={pickedLocation}
-        savedRoutes={routes}
+        savedRoutes={visibleRoutes}
         isDrawingRoute={isDrawingRoute}
         drawingRoutePoints={drawingRoutePoints}
         onSelectLight={setSelectedLight}
@@ -580,7 +693,7 @@ const StreetLightMap = () => {
         onCancelDrawRoute={cancelDrawingRoute}
       />
 
-      {lightsWithCoordinates.length === 0 && routes.length === 0 ? (
+      {lightsWithCoordinates.length === 0 && visibleRoutes.length === 0 ? (
         <div className="absolute bottom-4 left-4 z-[500] rounded-2xl border border-blue-100 bg-white/95 px-4 py-3 text-sm font-semibold text-slate-700 shadow-lg backdrop-blur">
           Chưa có đèn/tuyến. Bạn vẫn có thể bấm “✎ Vẽ tuyến” để tạo tuyến đầu tiên.
         </div>
@@ -711,6 +824,27 @@ const StreetLightMap = () => {
                     </option>
                   ))}
                 </select>
+              </label>
+              <label className="text-sm font-bold text-slate-700 md:col-span-2">
+                Loại thiết bị
+                <select
+                  value={addForm.device_type_code}
+                  onChange={(event) => setAddForm((form) => ({ ...form, device_type_code: event.target.value }))}
+                  className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                >
+                  {deviceTypes.length === 0 ? (
+                    <option value={DEFAULT_DEVICE_TYPE_CODE}>DEN-LED-9M - Đèn LED cao áp 9m</option>
+                  ) : (
+                    deviceTypes.map((deviceType) => (
+                      <option key={deviceType.ma_loai} value={deviceType.ma_loai}>
+                        {deviceType.ma_loai} - {deviceType.ten_loai}
+                      </option>
+                    ))
+                  )}
+                </select>
+                <p className="mt-2 rounded-xl bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500">
+                  {formatDeviceTypeSummary(selectedAddDeviceType)}
+                </p>
               </label>
               <label className="text-sm font-bold text-slate-700">
                 Latitude
@@ -926,6 +1060,27 @@ const StreetLightMap = () => {
                     </option>
                   ))}
                 </select>
+              </label>
+              <label className="text-sm font-bold text-slate-700 md:col-span-2">
+                Loại thiết bị áp dụng cho chuỗi
+                <select
+                  value={generateForm.device_type_code}
+                  onChange={(event) => setGenerateForm((form) => ({ ...form, device_type_code: event.target.value }))}
+                  className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                >
+                  {deviceTypes.length === 0 ? (
+                    <option value={DEFAULT_DEVICE_TYPE_CODE}>DEN-LED-9M - Đèn LED cao áp 9m</option>
+                  ) : (
+                    deviceTypes.map((deviceType) => (
+                      <option key={deviceType.ma_loai} value={deviceType.ma_loai}>
+                        {deviceType.ma_loai} - {deviceType.ten_loai}
+                      </option>
+                    ))
+                  )}
+                </select>
+                <p className="mt-2 rounded-xl bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500">
+                  {formatDeviceTypeSummary(selectedGenerateDeviceType)}
+                </p>
               </label>
               <label className="text-sm font-bold text-slate-700">
                 Mã prefix

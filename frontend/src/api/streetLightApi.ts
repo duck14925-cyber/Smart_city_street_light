@@ -40,6 +40,17 @@ export interface StreetLightRecord {
   trang_thai: string;
   chi_phi_bao_duong?: number;
   ngay_lap_dat?: string;
+  device_type_code?: string | null;
+  device_type_name?: string | null;
+  device_category?: string | null;
+  lamp_type?: string | null;
+  power_w?: number | null;
+  pole_height_m?: number | null;
+  icon_2d_url?: string | null;
+  model_3d_url?: string | null;
+  model_scale?: number | null;
+  model_bearing?: number | null;
+  model_height?: number | null;
 }
 
 export interface CreateStreetLightPayload {
@@ -52,6 +63,7 @@ export interface CreateStreetLightPayload {
   trang_thai?: string;
   chi_phi_bao_duong?: number;
   ngay_lap_dat?: string;
+  device_type_code?: string;
 }
 
 export interface StreetLightRouteRecord {
@@ -81,6 +93,7 @@ export interface GenerateStreetLightsPayload {
   both_sides?: boolean;
   offset?: number;
   trang_thai?: string;
+  device_type_code?: string;
 }
 
 export interface StreetLightAreaOption {
@@ -99,6 +112,21 @@ export interface StreetLightDataHistoryItem {
   ma_doi_tuong?: string;
   tuyen_duong?: string;
   noi_dung?: string;
+}
+
+export interface StreetLightDeviceType {
+  ma_loai: string;
+  ten_loai: string;
+  danh_muc?: string;
+  loai_bong_den?: string;
+  cong_suat_w?: number;
+  chieu_cao_cot_m?: number;
+  icon_2d_url?: string;
+  model_3d_url?: string;
+  model_scale?: number;
+  model_bearing?: number;
+  model_height?: number;
+  trang_thai?: string;
 }
 
 const DASHBOARD_ENDPOINT =
@@ -123,6 +151,8 @@ const DELETE_LIGHT_ENDPOINT =
   '/api/method/smart_city.smart_city.services.street_light_service.delete_street_light';
 const DATA_HISTORY_ENDPOINT =
   '/api/method/smart_city.smart_city.services.street_light_service.get_street_light_data_history';
+const DEVICE_TYPES_ENDPOINT =
+  '/api/method/smart_city.smart_city.services.street_light_service.get_street_light_device_types';
 
 const emptyCharts = {
   lights_by_status: [],
@@ -306,6 +336,18 @@ export const getStreetLightDataHistory = async (
     return Array.isArray(payload) ? payload : [];
   } catch (error) {
     console.error('[StreetLightAPI] getStreetLightDataHistory failed:', error);
+    throw error;
+  }
+};
+
+export const getStreetLightDeviceTypes = async (): Promise<StreetLightDeviceType[]> => {
+  try {
+    const response = await api.get(DEVICE_TYPES_ENDPOINT);
+    const payload = getFrappePayload(response.data);
+
+    return Array.isArray(payload) ? payload : [];
+  } catch (error) {
+    console.error('[StreetLightAPI] getStreetLightDeviceTypes failed:', error);
     throw error;
   }
 };
