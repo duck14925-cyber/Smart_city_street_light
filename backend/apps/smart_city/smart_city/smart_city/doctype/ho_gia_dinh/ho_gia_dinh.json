@@ -1,0 +1,107 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:ma_ho",
+ "creation": "2026-05-28 11:28:13.719819",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "ma_ho",
+  "chu_ho",
+  "khu_vuc",
+  "dia_chi",
+  "toa_do_gps",
+  "so_dien_thoai",
+  "email",
+  "tong_nhan_khau",
+  "trang_thai"
+ ],
+ "fields": [
+  {
+   "fieldname": "ma_ho",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "M\u00e3 h\u1ed9",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "chu_ho",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Ch\u1ee7 h\u1ed9",
+   "reqd": 1
+  },
+  {
+   "fieldname": "khu_vuc",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Khu v\u1ef1c",
+   "options": "Khu Vuc",
+   "reqd": 1
+  },
+  {
+   "fieldname": "dia_chi",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "\u0110\u1ecba ch\u1ec9",
+   "reqd": 1
+  },
+  {
+   "fieldname": "toa_do_gps",
+   "fieldtype": "Geolocation",
+   "label": "T\u1ecda \u0111\u1ed9 GPS"
+  },
+  {
+   "fieldname": "so_dien_thoai",
+   "fieldtype": "Data",
+   "label": "S\u1ed1 \u0111i\u1ec7n tho\u1ea1i"
+  },
+  {
+   "fieldname": "email",
+   "fieldtype": "Data",
+   "label": "Email",
+   "options": "Email"
+  },
+  {
+   "fieldname": "tong_nhan_khau",
+   "fieldtype": "Int",
+   "label": "T\u1ed5ng nh\u00e2n kh\u1ea9u"
+  },
+  {
+   "default": "Ho\u1ea1t \u0111\u1ed9ng",
+   "fieldname": "trang_thai",
+   "fieldtype": "Select",
+   "label": "Tr\u1ea1ng th\u00e1i",
+   "options": "Ho\u1ea1t \u0111\u1ed9ng\nB\u1ecf tr\u1ed1ng\nH\u1ee7y b\u1ecf"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-05-28 11:28:13.719819",
+ "modified_by": "Administrator",
+ "module": "Smart City",
+ "name": "Ho Gia Dinh",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

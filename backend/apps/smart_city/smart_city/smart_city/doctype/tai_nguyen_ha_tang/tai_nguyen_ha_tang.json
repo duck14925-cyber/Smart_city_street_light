@@ -1,0 +1,102 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:ma_tai_san",
+ "creation": "2026-05-28 11:28:14.296280",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "loai_tai_san",
+  "ten_tai_san",
+  "ma_tai_san",
+  "khu_vuc",
+  "toa_do_gps",
+  "trang_thai",
+  "chi_phi_bao_duong",
+  "ngay_lap_dat"
+ ],
+ "fields": [
+  {
+   "fieldname": "loai_tai_san",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Lo\u1ea1i t\u00e0i s\u1ea3n",
+   "options": "Camera an ninh\n\u0110\u00e8n chi\u1ebfu s\u00e1ng\nC\u00e2y xanh\nNh\u00e0 s\u01a1 t\u00e1n\nTr\u1ea1m bi\u1ebfn \u00e1p\nTr\u1ea1m b\u01a1m\nKh\u00e1c",
+   "reqd": 1
+  },
+  {
+   "fieldname": "ten_tai_san",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "T\u00ean t\u00e0i s\u1ea3n",
+   "reqd": 1
+  },
+  {
+   "fieldname": "ma_tai_san",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "M\u00e3 t\u00e0i s\u1ea3n",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "khu_vuc",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Khu v\u1ef1c",
+   "options": "Khu Vuc",
+   "reqd": 1
+  },
+  {
+   "fieldname": "toa_do_gps",
+   "fieldtype": "Geolocation",
+   "label": "T\u1ecda \u0111\u1ed9 GPS",
+   "reqd": 1
+  },
+  {
+   "default": "Ho\u1ea1t \u0111\u1ed9ng",
+   "fieldname": "trang_thai",
+   "fieldtype": "Select",
+   "label": "Tr\u1ea1ng th\u00e1i",
+   "options": "Ho\u1ea1t \u0111\u1ed9ng\nH\u1ecfng\nB\u1ea3o tr\u00ec"
+  },
+  {
+   "fieldname": "chi_phi_bao_duong",
+   "fieldtype": "Currency",
+   "label": "Chi ph\u00ed b\u1ea3o d\u01b0\u1ee1ng"
+  },
+  {
+   "fieldname": "ngay_lap_dat",
+   "fieldtype": "Date",
+   "label": "Ng\u00e0y l\u1eafp \u0111\u1eb7t"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-05-28 11:28:14.296280",
+ "modified_by": "Administrator",
+ "module": "Smart City",
+ "name": "Tai Nguyen Ha Tang",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

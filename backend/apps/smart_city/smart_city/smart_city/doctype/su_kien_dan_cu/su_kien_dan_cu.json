@@ -1,0 +1,101 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:SKDC-.#####",
+ "creation": "2026-05-28 11:28:14.089933",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "loai_su_kien",
+  "nhan_khau",
+  "ngay_su_kien",
+  "chi_tiet",
+  "ghi_chu",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "default": "SKDC-.#####",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Naming Series",
+   "options": "SKDC-.#####"
+  },
+  {
+   "fieldname": "loai_su_kien",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Lo\u1ea1i s\u1ef1 ki\u1ec7n",
+   "options": "Sinh\nT\u1eed\nChuy\u1ec3n \u0111\u1ebfn\nChuy\u1ec3n \u0111i\nK\u1ebft h\u00f4n\nLy h\u00f4n\nKh\u00e1c",
+   "reqd": 1
+  },
+  {
+   "fieldname": "nhan_khau",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Nh\u00e2n kh\u1ea9u",
+   "options": "Nhan Khau",
+   "reqd": 1
+  },
+  {
+   "fieldname": "ngay_su_kien",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Ng\u00e0y s\u1ef1 ki\u1ec7n",
+   "reqd": 1
+  },
+  {
+   "fieldname": "chi_tiet",
+   "fieldtype": "Small Text",
+   "label": "Chi ti\u1ebft"
+  },
+  {
+   "fieldname": "ghi_chu",
+   "fieldtype": "Text Editor",
+   "label": "Ghi ch\u00fa"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Su Kien Dan Cu",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-05-28 11:28:14.089933",
+ "modified_by": "Administrator",
+ "module": "Smart City",
+ "name": "Su Kien Dan Cu",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "amend": 1,
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

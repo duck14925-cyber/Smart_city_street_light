@@ -1,0 +1,133 @@
+import { Link, useLocation } from 'react-router-dom';
+
+interface MenuItem {
+  name: string;
+  path: string;
+  icon: string;
+}
+
+interface MenuGroup {
+  title: string;
+  items: MenuItem[];
+}
+
+const menuGroups: MenuGroup[] = [
+  {
+    title: 'QUẢN LÝ ĐÈN ĐƯỜNG',
+    items: [
+      { name: 'Dashboard đèn đường', path: '/street-lights/dashboard', icon: '💡' },
+      { name: 'Bản đồ GIS', path: '/street-lights/map', icon: '🗺️' },
+      { name: 'Công việc của tôi', path: '/street-lights/my-work', icon: '🛠️' },
+      { name: 'Thông báo', path: '/street-lights/notifications', icon: '🔔' },
+    ],
+  },
+  {
+    title: 'TÀI SẢN ĐIỆN & CHIẾU SÁNG',
+    items: [
+      { name: 'Danh sách thiết bị', path: '/street-lights/assets', icon: '🏙️' },
+      { name: 'Loại thiết bị', path: '/street-lights/device-types', icon: '🏷️' },
+    ],
+  },
+  {
+    title: 'SỰ CỐ & PHẢN ÁNH',
+    items: [
+      { name: 'Báo cáo sự cố mới', path: '/street-lights/incidents/new', icon: '➕' },
+      { name: 'Danh sách sự cố', path: '/street-lights/incidents', icon: '🚨' },
+      { name: 'Mức độ sự cố', path: '/street-lights/categories/severity', icon: '📌' },
+      { name: 'Nguồn báo cáo', path: '/street-lights/categories/report-sources', icon: '📣' },
+      { name: 'Loại sự cố', path: '/street-lights/categories/fault-types', icon: '⚠️' },
+    ],
+  },
+  {
+    title: 'KIỂM TRA KỸ THUẬT',
+    items: [
+      { name: 'Phiếu kiểm tra', path: '/street-lights/inspections', icon: '✅' },
+      { name: 'Tình trạng điện', path: '/street-lights/categories/electrical-conditions', icon: '⚡' },
+      { name: 'Tình trạng cột', path: '/street-lights/categories/pole-conditions', icon: '🗼' },
+      { name: 'Tình trạng dây', path: '/street-lights/categories/wire-conditions', icon: '〰️' },
+      { name: 'Mức an toàn', path: '/street-lights/categories/safety-levels', icon: '🛡️' },
+    ],
+  },
+  {
+    title: 'KẾ HOẠCH & THI CÔNG',
+    items: [
+      { name: 'Kế hoạch bảo trì', path: '/street-lights/plans', icon: '🗓️' },
+      { name: 'Phiếu công việc', path: '/street-lights/work-orders', icon: '📋' },
+      { name: 'Nhật ký thi công', path: '/street-lights/work-logs', icon: '🧰' },
+      { name: 'Nghiệm thu', path: '/street-lights/acceptance', icon: '🎯' },
+    ],
+  },
+  {
+    title: 'THỐNG KÊ & BÁO CÁO',
+    items: [
+      { name: 'Theo khu vực', path: '/street-lights/reports/areas', icon: '📊' },
+      { name: 'Sự cố', path: '/street-lights/reports/incidents', icon: '📈' },
+      { name: 'Phiếu công việc', path: '/street-lights/reports/work-orders', icon: '📑' },
+      { name: 'Hiệu suất đơn vị', path: '/street-lights/reports/unit-performance', icon: '🏅' },
+    ],
+  },
+];
+
+const Sidebar = () => {
+  const location = useLocation();
+
+  return (
+    <aside className="hidden w-72 shrink-0 flex-col border-r border-slate-700/80 bg-slate-900 text-slate-100 shadow-xl md:flex">
+      <div className="flex h-20 items-center gap-3 border-b border-slate-700/80 px-5">
+        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-400 text-xl shadow-lg shadow-blue-950/40">
+          💡
+        </div>
+        <div className="min-w-0">
+          <h1 className="truncate text-base font-bold leading-tight text-white">Cấp điện & Chiếu sáng</h1>
+          <p className="mt-0.5 text-xs font-medium text-slate-400">Quản lý đèn đường</p>
+        </div>
+      </div>
+
+      <nav className="flex-1 overflow-y-auto px-3 py-4">
+        {menuGroups.map((group) => (
+          <div key={group.title} className="mb-5">
+            <p className="mb-2 px-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+              {group.title}
+            </p>
+            <ul className="space-y-1">
+              {group.items.map((item) => {
+                const isActive = location.pathname === item.path;
+                return (
+                  <li key={item.path}>
+                    <Link
+                      to={item.path}
+                      className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all duration-150 ${
+                        isActive
+                          ? 'bg-blue-600 text-white shadow-lg shadow-blue-950/30'
+                          : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                      }`}
+                    >
+                      <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/5 text-base">
+                        {item.icon}
+                      </span>
+                      <span className="truncate">{item.name}</span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
+      </nav>
+
+      <div className="border-t border-slate-700/80 p-4">
+        <div className="flex items-center gap-3 rounded-2xl bg-slate-800/80 p-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-cyan-500 text-sm font-bold text-white">
+            AD
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-bold text-white">Administrator</p>
+            <p className="text-xs text-slate-400">smartcity.localhost</p>
+          </div>
+        </div>
+      </div>
+    </aside>
+  );
+};
+
+export default Sidebar;

@@ -1,0 +1,100 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:cccd_cmt",
+ "creation": "2026-05-28 11:28:13.908116",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "ho_ten",
+  "ngay_sinh",
+  "gioi_tinh",
+  "cccd_cmt",
+  "ho_gia_dinh",
+  "quan_he",
+  "nghe_nghiep",
+  "trang_thai"
+ ],
+ "fields": [
+  {
+   "fieldname": "ho_ten",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "H\u1ecd t\u00ean",
+   "reqd": 1
+  },
+  {
+   "fieldname": "ngay_sinh",
+   "fieldtype": "Date",
+   "label": "Ng\u00e0y sinh"
+  },
+  {
+   "fieldname": "gioi_tinh",
+   "fieldtype": "Select",
+   "label": "Gi\u1edbi t\u00ednh",
+   "options": "Nam\nN\u1eef\nKh\u00e1c"
+  },
+  {
+   "fieldname": "cccd_cmt",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "CCCD/CMT",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "ho_gia_dinh",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "H\u1ed9 gia \u0111\u00ecnh",
+   "options": "Ho Gia Dinh",
+   "reqd": 1
+  },
+  {
+   "fieldname": "quan_he",
+   "fieldtype": "Select",
+   "label": "Quan h\u1ec7",
+   "options": "Ch\u1ee7 h\u1ed9\nV\u1ee3\nCh\u1ed3ng\nCon\nCha\nM\u1eb9\nAnh/Ch\u1ecb/Em\nKh\u00e1c"
+  },
+  {
+   "fieldname": "nghe_nghiep",
+   "fieldtype": "Data",
+   "label": "Ngh\u1ec1 nghi\u1ec7p"
+  },
+  {
+   "default": "\u0110ang s\u1ed1ng",
+   "fieldname": "trang_thai",
+   "fieldtype": "Select",
+   "label": "Tr\u1ea1ng th\u00e1i",
+   "options": "\u0110ang s\u1ed1ng\nT\u1ea1m c\u01b0\nChuy\u1ec3n \u0111i\nM\u1ea5t"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-05-28 11:28:13.908116",
+ "modified_by": "Administrator",
+ "module": "Smart City",
+ "name": "Nhan Khau",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

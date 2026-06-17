@@ -1,0 +1,89 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "format:LOG-DEN-.YYYY.-.#####",
+ "creation": "2026-06-17 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "hanh_dong",
+  "doi_tuong",
+  "ten_doi_tuong",
+  "ma_doi_tuong",
+  "tuyen_duong",
+  "noi_dung",
+  "payload_json"
+ ],
+ "fields": [
+  {
+   "fieldname": "hanh_dong",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Hành động",
+   "options": "Tạo đèn\nXóa đèn\nCập nhật trạng thái\nTạo tuyến\nTạo chuỗi đèn",
+   "reqd": 1
+  },
+  {
+   "fieldname": "doi_tuong",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Đối tượng"
+  },
+  {
+   "fieldname": "ten_doi_tuong",
+   "fieldtype": "Data",
+   "label": "Tên đối tượng"
+  },
+  {
+   "fieldname": "ma_doi_tuong",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Mã đối tượng"
+  },
+  {
+   "fieldname": "tuyen_duong",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Tuyến đường"
+  },
+  {
+   "fieldname": "noi_dung",
+   "fieldtype": "Small Text",
+   "label": "Nội dung"
+  },
+  {
+   "fieldname": "payload_json",
+   "fieldtype": "Code",
+   "label": "Payload JSON",
+   "options": "JSON"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-06-17 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Smart City",
+ "name": "Lich Su Du Lieu Den",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

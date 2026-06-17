@@ -1,0 +1,44 @@
+# Nested repos / unrelated repos
+ECC/
+backend/apps/frappe/
+
+# Frappe bench generated / sensitive
+backend/env/
+backend/logs/
+backend/sites/
+backend/config/
+backend/archived/
+backend/assets/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.log
+
+# Node / React
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Environment / secrets
+.env
+.env.*
+*.pem
+*.key
+*.crt
+*.sql
+*.dump
+*.bak
+*.zip
+*.tar
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+
+# Bench root generated/old files
+backend/Procfile
+backend/patches.txt
+backend/seed_data.py

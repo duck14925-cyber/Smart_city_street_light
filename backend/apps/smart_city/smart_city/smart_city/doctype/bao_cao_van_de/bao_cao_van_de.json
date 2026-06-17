@@ -1,0 +1,125 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:BCVD-.#####",
+ "creation": "2026-05-28 11:28:14.478997",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "tieu_de",
+  "loai_van_de",
+  "khu_vuc",
+  "vi_tri_gps",
+  "mo_ta_chi_tiet",
+  "hinh_anh_minh_hoa",
+  "muc_do_uu_tien",
+  "nguoi_bao_cao",
+  "sdt_lien_he",
+  "trang_thai"
+ ],
+ "fields": [
+  {
+   "default": "BCVD-.#####",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Naming Series",
+   "options": "BCVD-.#####"
+  },
+  {
+   "fieldname": "tieu_de",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Ti\u00eau \u0111\u1ec1",
+   "reqd": 1
+  },
+  {
+   "fieldname": "loai_van_de",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Lo\u1ea1i v\u1ea5n \u0111\u1ec1",
+   "options": "V\u1ec7 sinh m\u00f4i tr\u01b0\u1eddng\nAn to\u00e0n giao th\u00f4ng\nC\u00e2y xanh h\u01b0 h\u1ecfng\n\u0110\u00e8n \u0111\u01b0\u1eddng h\u1ecfng\nNg\u1eadp n\u01b0\u1edbc\nTi\u1ebfng \u1ed3n\nKh\u00e1c",
+   "reqd": 1
+  },
+  {
+   "fieldname": "khu_vuc",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Khu v\u1ef1c",
+   "options": "Khu Vuc",
+   "reqd": 1
+  },
+  {
+   "fieldname": "vi_tri_gps",
+   "fieldtype": "Geolocation",
+   "in_list_view": 1,
+   "label": "V\u1ecb tr\u00ed GPS",
+   "reqd": 1
+  },
+  {
+   "fieldname": "mo_ta_chi_tiet",
+   "fieldtype": "Text Editor",
+   "label": "M\u00f4 t\u1ea3 chi ti\u1ebft",
+   "reqd": 1
+  },
+  {
+   "fieldname": "hinh_anh_minh_hoa",
+   "fieldtype": "Attach",
+   "label": "H\u00ecnh \u1ea3nh minh h\u1ecda"
+  },
+  {
+   "default": "Trung b\u00ecnh",
+   "fieldname": "muc_do_uu_tien",
+   "fieldtype": "Select",
+   "label": "M\u1ee9c \u0111\u1ed9 \u01b0u ti\u00ean",
+   "options": "Th\u1ea5p\nTrung b\u00ecnh\nCao\nR\u1ea5t c\u1ea5p t\u00ednh"
+  },
+  {
+   "fieldname": "nguoi_bao_cao",
+   "fieldtype": "Data",
+   "label": "Ng\u01b0\u1eddi b\u00e1o c\u00e1o",
+   "reqd": 1
+  },
+  {
+   "fieldname": "sdt_lien_he",
+   "fieldtype": "Data",
+   "label": "S\u0110T li\u00ean h\u1ec7"
+  },
+  {
+   "default": "M\u1edbi",
+   "fieldname": "trang_thai",
+   "fieldtype": "Select",
+   "label": "Tr\u1ea1ng th\u00e1i",
+   "options": "M\u1edbi\n\u0110ang x\u1eed l\u00fd\n\u0110\u00e3 gi\u1ea3i quy\u1ebft\n\u0110\u00e3 \u0111\u00f3ng"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-05-28 11:28:14.478997",
+ "modified_by": "Administrator",
+ "module": "Smart City",
+ "name": "Bao Cao Van De",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}
