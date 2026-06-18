@@ -66,6 +66,21 @@ export interface CreateStreetLightPayload {
   device_type_code?: string;
 }
 
+export interface UpdateStreetLightPayload {
+  name?: string;
+  ma_tai_san?: string;
+  ten_tai_san?: string;
+  route_name?: string;
+  khu_vuc?: string;
+  latitude?: number;
+  longitude?: number;
+  trang_thai?: string;
+  device_type_code?: string;
+  loai_thiet_bi_chieu_sang?: string;
+  ngay_lap_dat?: string;
+  chi_phi_bao_duong?: number;
+}
+
 export interface StreetLightRouteRecord {
   name: string;
   ma_tuyen: string;
@@ -141,6 +156,8 @@ const LIGHTS_ENDPOINT =
   '/api/method/smart_city.smart_city.services.street_light_service.get_street_lights';
 const UPDATE_STATUS_ENDPOINT =
   '/api/method/smart_city.smart_city.services.street_light_service.update_street_light_status';
+const UPDATE_LIGHT_ENDPOINT =
+  '/api/method/smart_city.smart_city.services.street_light_service.update_street_light';
 const CREATE_LIGHT_ENDPOINT =
   '/api/method/smart_city.smart_city.services.street_light_service.create_street_light';
 const ROUTES_ENDPOINT =
@@ -248,6 +265,21 @@ export const updateStreetLightStatus = async (name: string, trangThai: string) =
     return getFrappePayload(response.data);
   } catch (error) {
     console.error('[StreetLightAPI] updateStreetLightStatus failed:', error);
+    throw error;
+  }
+};
+
+export const updateStreetLight = async (payload: UpdateStreetLightPayload) => {
+  try {
+    const response = await api.post(UPDATE_LIGHT_ENDPOINT, undefined, {
+      params: {
+        data: JSON.stringify(payload),
+      },
+    });
+
+    return getFrappePayload(response.data);
+  } catch (error) {
+    console.error('[StreetLightAPI] updateStreetLight failed:', error);
     throw error;
   }
 };

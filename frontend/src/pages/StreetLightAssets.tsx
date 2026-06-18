@@ -3,13 +3,30 @@ import { Link } from 'react-router-dom';
 import {
   deleteStreetLight,
   getStreetLightDataHistory,
+  getStreetLightDeviceTypes,
   getStreetLights,
+  updateStreetLight,
   updateStreetLightStatus,
   type StreetLightDataHistoryItem,
+  type StreetLightDeviceType,
   type StreetLightRecord,
 } from '../api/streetLightApi';
 
 const STATUS_OPTIONS = ['Hoạt động', 'Hỏng', 'Bảo trì'];
+
+interface EditLightForm {
+  name: string;
+  ma_tai_san: string;
+  ten_tai_san: string;
+  route_name: string;
+  khu_vuc: string;
+  latitude: string;
+  longitude: string;
+  trang_thai: string;
+  device_type_code: string;
+  ngay_lap_dat: string;
+  chi_phi_bao_duong: string;
+}
 
 const currencyFormatter = new Intl.NumberFormat('vi-VN', {
   style: 'currency',
@@ -52,6 +69,45 @@ const formatCurrency = (value?: number) => {
 const formatCoordinate = (value: number | null) => {
   if (typeof value !== 'number') return 'N/A';
   return value.toFixed(6);
+};
+
+const formatNumber = (value?: number | null, suffix = '') => {
+  if (value === undefined || value === null || Number.isNaN(Number(value))) return 'Chưa có';
+  return `${Number(value).toLocaleString('vi-VN')}${suffix}`;
+};
+
+const toEditForm = (light: StreetLightRecord): EditLightForm => ({
+  name: light.name,
+  ma_tai_san: light.ma_tai_san,
+  ten_tai_san: light.ten_tai_san || '',
+  route_name: light.route_name || '',
+  khu_vuc: light.khu_vuc || '',
+  latitude: light.latitude === null ? '' : String(light.latitude),
+  longitude: light.longitude === null ? '' : String(light.longitude),
+  trang_thai: light.trang_thai || STATUS_OPTIONS[0],
+  device_type_code: light.device_type_code || '',
+  ngay_lap_dat: light.ngay_lap_dat || '',
+  chi_phi_bao_duong:
+    light.chi_phi_bao_duong === undefined || light.chi_phi_bao_duong === null
+      ? ''
+      : String(light.chi_phi_bao_duong),
+});
+
+const getApiErrorMessage = (error: any, fallback: string) => {
+  const data = error?.response?.data;
+  if (typeof data?.message === 'string') return data.message;
+
+  if (typeof data?._server_messages === 'string') {
+    try {
+      const messages = JSON.parse(data._server_messages);
+      const firstMessage = messages?.[0] ? JSON.parse(messages[0]) : null;
+      if (firstMessage?.message) return firstMessage.message;
+    } catch {
+      return fallback;
+    }
+  }
+
+  return error?.message || fallback;
 };
 
 const TableSkeleton = () => (
@@ -99,8 +155,14 @@ const DetailModal = ({ light, onClose }: DetailModalProps) => (
 
       <div className="grid gap-4 p-6 sm:grid-cols-2">
         {[
+          ['Tuyến đường', light.route_name || 'Chưa xác định'],
           ['Khu vực', light.ten_khu_vuc || light.khu_vuc || 'Chưa xác định'],
           ['Trạng thái', light.trang_thai || 'Không rõ'],
+          ['Mã loại thiết bị', light.device_type_code || 'Chưa cấu hình'],
+          ['Tên loại thiết bị', light.device_type_name || 'Chưa cấu hình'],
+          ['Loại bóng', light.lamp_type || 'Chưa cấu hình'],
+          ['Công suất', formatNumber(light.power_w, ' W')],
+          ['Chiều cao cột', formatNumber(light.pole_height_m, ' m')],
           ['Ngày lắp đặt', formatDate(light.ngay_lap_dat)],
           ['Chi phí bảo dưỡng', formatCurrency(light.chi_phi_bao_duong)],
           ['Latitude', formatCoordinate(light.latitude)],
@@ -111,6 +173,31 @@ const DetailModal = ({ light, onClose }: DetailModalProps) => (
             <p className="mt-2 text-sm font-bold text-slate-900">{value}</p>
           </div>
         ))}
+      </div>
+
+      <div className="grid gap-4 border-t border-slate-100 px-6 py-5 sm:grid-cols-2">
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Icon 2D</p>
+          {light.icon_2d_url ? (
+            <div className="mt-3 flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl bg-white p-2 shadow-sm">
+                <img src={light.icon_2d_url} alt={light.device_type_name || light.ma_tai_san} className="h-full w-full object-contain" />
+              </div>
+              <p className="max-w-[220px] truncate text-xs font-semibold text-slate-500">{light.icon_2d_url}</p>
+            </div>
+          ) : (
+            <p className="mt-2 text-sm font-semibold text-slate-500">Fallback icon theo trạng thái</p>
+          )}
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Model 3D</p>
+          <p className="mt-2 text-sm font-bold text-slate-800">
+            {light.model_3d_url ? 'Có model 3D' : 'Fallback cột 3D'}
+          </p>
+          {light.model_3d_url ? (
+            <p className="mt-1 max-w-[280px] truncate text-xs font-semibold text-slate-500">{light.model_3d_url}</p>
+          ) : null}
+        </div>
       </div>
 
       <div className="flex flex-col gap-3 border-t border-slate-100 px-6 py-5 sm:flex-row sm:justify-end">
@@ -254,13 +341,210 @@ const DeleteModal = ({ light, deleting, error, onClose, onDelete }: DeleteModalP
   </div>
 );
 
+interface EditLightModalProps {
+  form: EditLightForm;
+  areas: Array<{ value: string; label: string }>;
+  deviceTypes: StreetLightDeviceType[];
+  saving: boolean;
+  error: string;
+  onChange: (field: keyof EditLightForm, value: string) => void;
+  onClose: () => void;
+  onSave: () => void;
+}
+
+const inputClass =
+  'w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400';
+
+const EditLightModal = ({
+  form,
+  areas,
+  deviceTypes,
+  saving,
+  error,
+  onChange,
+  onClose,
+  onSave,
+}: EditLightModalProps) => (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
+    <div className="max-h-[92vh] w-full max-w-4xl overflow-hidden rounded-3xl bg-white shadow-2xl">
+      <div className="flex items-start justify-between gap-4 border-b border-slate-100 bg-gradient-to-r from-white via-blue-50 to-cyan-50 px-6 py-5">
+        <div>
+          <p className="font-mono text-sm font-bold text-blue-700">{form.ma_tai_san}</p>
+          <h2 className="mt-1 text-2xl font-bold text-slate-950">Sửa thiết bị chiếu sáng</h2>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={saving}
+          className="rounded-xl p-2 text-slate-400 transition hover:bg-white hover:text-slate-700 disabled:opacity-60"
+        >
+          ✕
+        </button>
+      </div>
+
+      <div className="max-h-[calc(92vh-154px)] overflow-y-auto p-6">
+        <div className="grid gap-4 md:grid-cols-2">
+          <label>
+            <span className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-400">
+              Mã thiết bị
+            </span>
+            <input value={form.ma_tai_san} disabled className={inputClass} />
+          </label>
+          <label>
+            <span className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-400">
+              Tên thiết bị
+            </span>
+            <input
+              value={form.ten_tai_san}
+              onChange={(event) => onChange('ten_tai_san', event.target.value)}
+              className={inputClass}
+            />
+          </label>
+          <label>
+            <span className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-400">
+              Tuyến đường
+            </span>
+            <input
+              value={form.route_name}
+              onChange={(event) => onChange('route_name', event.target.value)}
+              placeholder="VD: Đường Hùng Vương"
+              className={inputClass}
+            />
+          </label>
+          <label>
+            <span className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-400">
+              Khu vực
+            </span>
+            <select
+              value={form.khu_vuc}
+              onChange={(event) => onChange('khu_vuc', event.target.value)}
+              className={inputClass}
+            >
+              <option value="">Chưa chọn</option>
+              {areas.map((area) => (
+                <option key={area.value} value={area.value}>
+                  {area.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-400">
+              Latitude
+            </span>
+            <input
+              type="number"
+              value={form.latitude}
+              onChange={(event) => onChange('latitude', event.target.value)}
+              className={inputClass}
+            />
+          </label>
+          <label>
+            <span className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-400">
+              Longitude
+            </span>
+            <input
+              type="number"
+              value={form.longitude}
+              onChange={(event) => onChange('longitude', event.target.value)}
+              className={inputClass}
+            />
+          </label>
+          <label>
+            <span className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-400">
+              Trạng thái
+            </span>
+            <select
+              value={form.trang_thai}
+              onChange={(event) => onChange('trang_thai', event.target.value)}
+              className={inputClass}
+            >
+              {STATUS_OPTIONS.map((status) => (
+                <option key={status} value={status}>
+                  {status}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-400">
+              Loại thiết bị
+            </span>
+            <select
+              value={form.device_type_code}
+              onChange={(event) => onChange('device_type_code', event.target.value)}
+              className={inputClass}
+            >
+              <option value="">Mặc định hệ thống</option>
+              {deviceTypes.map((deviceType) => (
+                <option key={deviceType.ma_loai} value={deviceType.ma_loai}>
+                  {deviceType.ma_loai} - {deviceType.ten_loai}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-400">
+              Ngày lắp đặt
+            </span>
+            <input
+              type="date"
+              value={form.ngay_lap_dat}
+              onChange={(event) => onChange('ngay_lap_dat', event.target.value)}
+              className={inputClass}
+            />
+          </label>
+          <label>
+            <span className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-400">
+              Chi phí bảo dưỡng
+            </span>
+            <input
+              type="number"
+              value={form.chi_phi_bao_duong}
+              onChange={(event) => onChange('chi_phi_bao_duong', event.target.value)}
+              className={inputClass}
+            />
+          </label>
+        </div>
+
+        {error ? (
+          <div className="mt-5 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+            {error}
+          </div>
+        ) : null}
+      </div>
+
+      <div className="flex gap-3 border-t border-slate-100 px-6 py-5">
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={saving}
+          className="flex-1 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+        >
+          Hủy
+        </button>
+        <button
+          type="button"
+          onClick={onSave}
+          disabled={saving}
+          className="flex-1 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
 const HistoryPanel = ({
   history,
   loading,
+  activeCode,
   onRefresh,
 }: {
   history: StreetLightDataHistoryItem[];
   loading: boolean;
+  activeCode?: string;
   onRefresh: () => void;
 }) => (
   <div className="overflow-hidden rounded-3xl border border-white/80 bg-white shadow-sm shadow-slate-200/80">
@@ -268,7 +552,9 @@ const HistoryPanel = ({
       <div>
         <h2 className="text-xl font-black text-slate-950">Lịch sử thêm/sửa/xóa dữ liệu</h2>
         <p className="mt-1 text-sm font-medium text-slate-500">
-          Theo dõi tạo tuyến, tạo đèn, tạo chuỗi đèn, cập nhật trạng thái và xóa đèn.
+          {activeCode
+            ? `Đang xem lịch sử riêng của thiết bị ${activeCode}.`
+            : 'Theo dõi tạo tuyến, tạo đèn, tạo chuỗi đèn, cập nhật trạng thái và xóa đèn.'}
         </p>
       </div>
       <button
@@ -313,6 +599,7 @@ const HistoryPanel = ({
 
 const StreetLightAssets = () => {
   const [lights, setLights] = useState<StreetLightRecord[]>([]);
+  const [deviceTypes, setDeviceTypes] = useState<StreetLightDeviceType[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
@@ -320,13 +607,20 @@ const StreetLightAssets = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [areaFilter, setAreaFilter] = useState('');
+  const [routeFilter, setRouteFilter] = useState('');
+  const [deviceTypeFilter, setDeviceTypeFilter] = useState('');
   const [detailLight, setDetailLight] = useState<StreetLightRecord | null>(null);
+  const [editLight, setEditLight] = useState<StreetLightRecord | null>(null);
+  const [editForm, setEditForm] = useState<EditLightForm | null>(null);
   const [statusLight, setStatusLight] = useState<StreetLightRecord | null>(null);
   const [deleteLight, setDeleteLight] = useState<StreetLightRecord | null>(null);
   const [history, setHistory] = useState<StreetLightDataHistoryItem[]>([]);
+  const [historyFilterCode, setHistoryFilterCode] = useState('');
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState(STATUS_OPTIONS[0]);
+  const [savingEdit, setSavingEdit] = useState(false);
   const [savingStatus, setSavingStatus] = useState(false);
+  const [editError, setEditError] = useState('');
   const [statusError, setStatusError] = useState('');
   const [deletingLight, setDeletingLight] = useState(false);
   const [deleteError, setDeleteError] = useState('');
@@ -362,10 +656,20 @@ const StreetLightAssets = () => {
     }
   }, []);
 
+  const loadDeviceTypes = useCallback(async () => {
+    try {
+      const data = await getStreetLightDeviceTypes();
+      setDeviceTypes(data);
+    } catch {
+      setDeviceTypes([]);
+    }
+  }, []);
+
   useEffect(() => {
     loadLights();
     loadHistory();
-  }, [loadHistory, loadLights]);
+    loadDeviceTypes();
+  }, [loadDeviceTypes, loadHistory, loadLights]);
 
   const areaOptions = useMemo(() => {
     const areaMap = new Map<string, string>();
@@ -380,6 +684,11 @@ const StreetLightAssets = () => {
       .sort((left, right) => left.label.localeCompare(right.label, 'vi-VN'));
   }, [lights]);
 
+  const routeOptions = useMemo(() => {
+    return Array.from(new Set(lights.map((light) => light.route_name).filter(Boolean) as string[]))
+      .sort((left, right) => left.localeCompare(right, 'vi-VN'));
+  }, [lights]);
+
   const filteredLights = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLocaleLowerCase('vi-VN');
 
@@ -387,8 +696,11 @@ const StreetLightAssets = () => {
       const searchableText = [
         light.ma_tai_san,
         light.ten_tai_san,
+        light.route_name,
         light.ten_khu_vuc,
         light.khu_vuc,
+        light.device_type_code,
+        light.device_type_name,
       ]
         .filter(Boolean)
         .join(' ')
@@ -396,10 +708,77 @@ const StreetLightAssets = () => {
       const matchesSearch = normalizedSearch ? searchableText.includes(normalizedSearch) : true;
       const matchesStatus = statusFilter ? light.trang_thai === statusFilter : true;
       const matchesArea = areaFilter ? light.khu_vuc === areaFilter : true;
+      const matchesRoute = routeFilter ? light.route_name === routeFilter : true;
+      const matchesDeviceType = deviceTypeFilter
+        ? light.device_type_code === deviceTypeFilter
+        : true;
 
-      return matchesSearch && matchesStatus && matchesArea;
+      return matchesSearch && matchesStatus && matchesArea && matchesRoute && matchesDeviceType;
     });
-  }, [areaFilter, lights, searchTerm, statusFilter]);
+  }, [areaFilter, deviceTypeFilter, lights, routeFilter, searchTerm, statusFilter]);
+
+  const visibleHistory = useMemo(() => {
+    if (!historyFilterCode) return history;
+    return history.filter((item) => item.ma_doi_tuong === historyFilterCode);
+  }, [history, historyFilterCode]);
+
+  const openEditModal = (light: StreetLightRecord) => {
+    setEditLight(light);
+    setEditForm(toEditForm(light));
+    setEditError('');
+  };
+
+  const closeEditModal = () => {
+    if (savingEdit) return;
+    setEditLight(null);
+    setEditForm(null);
+    setEditError('');
+  };
+
+  const handleEditFormChange = (field: keyof EditLightForm, value: string) => {
+    setEditForm((current) => (current ? { ...current, [field]: value } : current));
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editLight || !editForm) return;
+    const latitude = Number(editForm.latitude);
+    const longitude = Number(editForm.longitude);
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+      setEditError('Latitude/Longitude không hợp lệ.');
+      return;
+    }
+
+    setSavingEdit(true);
+    setEditError('');
+    setNotice('');
+
+    try {
+      await updateStreetLight({
+        name: editForm.name,
+        ma_tai_san: editForm.ma_tai_san,
+        ten_tai_san: editForm.ten_tai_san,
+        route_name: editForm.route_name,
+        khu_vuc: editForm.khu_vuc,
+        latitude,
+        longitude,
+        trang_thai: editForm.trang_thai,
+        device_type_code: editForm.device_type_code || undefined,
+        ngay_lap_dat: editForm.ngay_lap_dat,
+        chi_phi_bao_duong: editForm.chi_phi_bao_duong
+          ? Number(editForm.chi_phi_bao_duong)
+          : 0,
+      });
+      await loadLights(true);
+      await loadHistory();
+      setNotice(`Đã cập nhật thiết bị ${editForm.ma_tai_san}.`);
+      setEditLight(null);
+      setEditForm(null);
+    } catch (saveError) {
+      setEditError(getApiErrorMessage(saveError, 'Không thể cập nhật thiết bị. Vui lòng thử lại.'));
+    } finally {
+      setSavingEdit(false);
+    }
+  };
 
   const openStatusModal = (light: StreetLightRecord) => {
     setStatusLight(light);
@@ -498,7 +877,7 @@ const StreetLightAssets = () => {
               </div>
             ) : null}
 
-            <div className="grid gap-4 lg:grid-cols-[1fr_220px_220px_auto]">
+            <div className="grid gap-4 lg:grid-cols-[1fr_190px_190px_190px_220px_auto]">
               <div>
                 <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-400">
                   Tìm kiếm
@@ -534,6 +913,24 @@ const StreetLightAssets = () => {
 
               <div>
                 <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-400">
+                  Tuyến đường
+                </label>
+                <select
+                  value={routeFilter}
+                  onChange={(event) => setRouteFilter(event.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                >
+                  <option value="">Tất cả</option>
+                  {routeOptions.map((routeName) => (
+                    <option key={routeName} value={routeName}>
+                      {routeName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-400">
                   Khu vực
                 </label>
                 <select
@@ -545,6 +942,24 @@ const StreetLightAssets = () => {
                   {areaOptions.map((area) => (
                     <option key={area.value} value={area.value}>
                       {area.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-400">
+                  Loại thiết bị
+                </label>
+                <select
+                  value={deviceTypeFilter}
+                  onChange={(event) => setDeviceTypeFilter(event.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                >
+                  <option value="">Tất cả</option>
+                  {deviceTypes.map((deviceType) => (
+                    <option key={deviceType.ma_loai} value={deviceType.ma_loai}>
+                      {deviceType.ma_loai} - {deviceType.ten_loai}
                     </option>
                   ))}
                 </select>
@@ -583,12 +998,16 @@ const StreetLightAssets = () => {
                 <EmptyState message="Không có thiết bị phù hợp với bộ lọc hiện tại." />
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[1180px] text-left">
+                  <table className="w-full min-w-[1420px] text-left">
                     <thead>
                       <tr className="border-b border-slate-100 bg-slate-50 text-xs font-bold uppercase tracking-wide text-slate-400">
                         <th className="px-5 py-4">Mã thiết bị</th>
                         <th className="px-5 py-4">Tên thiết bị</th>
+                        <th className="px-5 py-4">Tuyến đường</th>
                         <th className="px-5 py-4">Khu vực</th>
+                        <th className="px-5 py-4">Loại thiết bị</th>
+                        <th className="px-5 py-4">Công suất</th>
+                        <th className="px-5 py-4">Chiều cao</th>
                         <th className="px-5 py-4">Trạng thái</th>
                         <th className="px-5 py-4">Ngày lắp đặt</th>
                         <th className="px-5 py-4">Chi phí bảo dưỡng</th>
@@ -609,7 +1028,24 @@ const StreetLightAssets = () => {
                             <p className="mt-1 text-xs font-medium text-slate-400">{light.name}</p>
                           </td>
                           <td className="px-5 py-4 text-sm font-semibold text-slate-600">
+                            {light.route_name || 'Chưa xác định'}
+                          </td>
+                          <td className="px-5 py-4 text-sm font-semibold text-slate-600">
                             {light.ten_khu_vuc || light.khu_vuc || 'Chưa xác định'}
+                          </td>
+                          <td className="px-5 py-4">
+                            <p className="font-mono text-xs font-bold text-blue-700">
+                              {light.device_type_code || 'Mặc định'}
+                            </p>
+                            <p className="mt-1 max-w-[180px] truncate text-xs font-semibold text-slate-500">
+                              {light.device_type_name || 'Đèn LED cao áp 9m'}
+                            </p>
+                          </td>
+                          <td className="px-5 py-4 text-sm font-bold text-slate-700">
+                            {formatNumber(light.power_w, ' W')}
+                          </td>
+                          <td className="px-5 py-4 text-sm font-bold text-slate-700">
+                            {formatNumber(light.pole_height_m, ' m')}
                           </td>
                           <td className="px-5 py-4">
                             <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ring-1 ${getStatusBadgeClass(light.trang_thai)}`}>
@@ -636,6 +1072,28 @@ const StreetLightAssets = () => {
                               </button>
                               <button
                                 type="button"
+                                onClick={() => openEditModal(light)}
+                                className="rounded-xl bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700 transition hover:bg-emerald-100"
+                              >
+                                Sửa
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setHistoryFilterCode(light.ma_tai_san);
+                                  requestAnimationFrame(() =>
+                                    document.getElementById('street-light-history')?.scrollIntoView({
+                                      behavior: 'smooth',
+                                      block: 'start',
+                                    })
+                                  );
+                                }}
+                                className="rounded-xl bg-slate-100 px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-200"
+                              >
+                                Lịch sử
+                              </button>
+                              <button
+                                type="button"
                                 onClick={() => openStatusModal(light)}
                                 className="rounded-xl bg-blue-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-blue-700"
                               >
@@ -659,10 +1117,41 @@ const StreetLightAssets = () => {
             </div>
           )}
         </div>
-        <HistoryPanel history={history} loading={loadingHistory} onRefresh={loadHistory} />
+        <div id="street-light-history">
+          {historyFilterCode ? (
+            <div className="mb-3 flex items-center justify-between rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-bold text-blue-700">
+              <span>Đang lọc lịch sử theo thiết bị {historyFilterCode}</span>
+              <button
+                type="button"
+                onClick={() => setHistoryFilterCode('')}
+                className="rounded-xl bg-white px-3 py-2 text-xs font-bold text-blue-700 shadow-sm"
+              >
+                Xem tất cả
+              </button>
+            </div>
+          ) : null}
+          <HistoryPanel
+            history={visibleHistory}
+            loading={loadingHistory}
+            activeCode={historyFilterCode}
+            onRefresh={loadHistory}
+          />
+        </div>
       </div>
 
       {detailLight ? <DetailModal light={detailLight} onClose={() => setDetailLight(null)} /> : null}
+      {editLight && editForm ? (
+        <EditLightModal
+          form={editForm}
+          areas={areaOptions}
+          deviceTypes={deviceTypes}
+          saving={savingEdit}
+          error={editError}
+          onChange={handleEditFormChange}
+          onClose={closeEditModal}
+          onSave={handleSaveEdit}
+        />
+      ) : null}
       {statusLight ? (
         <StatusModal
           light={statusLight}

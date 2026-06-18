@@ -941,6 +941,80 @@ def create_street_light(data=None):
 
 
 @frappe.whitelist()
+def update_street_light(data=None):
+    """Update a street light asset and return the refreshed map/list record."""
+    try:
+        data = _parse_payload(data)
+        name = data.get("name")
+        code = str(data.get("ma_tai_san") or "").strip()
+
+        if name:
+            doc_name = name
+        elif code:
+            doc_name = frappe.db.exists(ASSET_DOCTYPE, {"ma_tai_san": code})
+        else:
+            frappe.throw("Cần truyền name hoặc ma_tai_san để cập nhật đèn.")
+
+        if not doc_name:
+            frappe.throw("Không tìm thấy đèn đường cần cập nhật.")
+
+        doc = frappe.get_doc(ASSET_DOCTYPE, doc_name)
+        if doc.loai_tai_san != STREET_LIGHT_ASSET_TYPE:
+            frappe.throw("Tài sản này không phải là đèn chiếu sáng.")
+
+        status = data.get("trang_thai")
+        if status:
+            if status not in LIGHT_STATUS_OPTIONS:
+                frappe.throw("Trạng thái đèn đường không hợp lệ.")
+            doc.trang_thai = status
+
+        route_name = str(data.get("route_name") or "").strip()
+        if data.get("ten_tai_san") and not route_name:
+            doc.ten_tai_san = data.get("ten_tai_san")
+        if route_name:
+            doc.ten_tai_san = "Đèn chiếu sáng - {0} - {1}".format(route_name, doc.ma_tai_san)
+
+        if data.get("khu_vuc") is not None:
+            doc.khu_vuc = data.get("khu_vuc")
+        if data.get("ngay_lap_dat") is not None:
+            doc.ngay_lap_dat = data.get("ngay_lap_dat")
+        if data.get("chi_phi_bao_duong") is not None:
+            doc.chi_phi_bao_duong = data.get("chi_phi_bao_duong") or 0
+
+        if data.get("latitude") is not None and data.get("longitude") is not None:
+            latitude = float(data.get("latitude"))
+            longitude = float(data.get("longitude"))
+            doc.toa_do_gps = "{0:.6f},{1:.6f}".format(latitude, longitude)
+
+        if data.get("device_type_code") or data.get("loai_thiet_bi_chieu_sang"):
+            doc.loai_thiet_bi_chieu_sang = _resolve_device_type_name(data)
+
+        doc.save(ignore_permissions=True)
+        frappe.db.commit()
+
+        area_names = _get_area_names([doc.khu_vuc])
+        device_type_rows = _get_device_type_rows([doc.loai_thiet_bi_chieu_sang])
+        result = _format_street_light(doc.as_dict(), area_names, device_type_rows)
+        _log_data_history(
+            "Cập nhật đèn",
+            ASSET_DOCTYPE,
+            doc.name,
+            doc.ma_tai_san,
+            result.get("route_name"),
+            "Cập nhật đèn {0}.".format(doc.ma_tai_san),
+            result,
+        )
+        _publish_update("street_light_updated", ASSET_DOCTYPE, doc.name, result)
+        return {"name": doc.name, "data": result}
+    except frappe.ValidationError:
+        raise
+    except Exception:
+        frappe.db.rollback()
+        frappe.log_error(frappe.get_traceback(), "Update Street Light Error")
+        frappe.throw("Không thể cập nhật đèn đường.")
+
+
+@frappe.whitelist()
 def generate_street_lights_for_route(data=None):
     """Generate multiple street lights along a saved route polyline."""
     try:
