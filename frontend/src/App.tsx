@@ -11,13 +11,13 @@ import StreetLightDashboard from './pages/StreetLightDashboard';
 import StreetLightMap from './pages/StreetLightMap';
 import StreetLightAssets from './pages/StreetLightAssets';
 import StreetLightDeviceTypes from './pages/StreetLightDeviceTypes';
+import StreetLightIncidents from './pages/StreetLightIncidents';
+import StreetLightIncidentNew from './pages/StreetLightIncidentNew';
 import StreetLightPlaceholder from './pages/StreetLightPlaceholder';
 
 const streetLightPlaceholderRoutes = [
   { path: '/street-lights/my-work', title: 'Công việc của tôi' },
   { path: '/street-lights/notifications', title: 'Thông báo' },
-  { path: '/street-lights/incidents/new', title: 'Báo cáo sự cố mới' },
-  { path: '/street-lights/incidents', title: 'Danh sách sự cố' },
   { path: '/street-lights/categories/severity', title: 'Mức độ sự cố' },
   { path: '/street-lights/categories/report-sources', title: 'Nguồn báo cáo' },
   { path: '/street-lights/categories/fault-types', title: 'Loại sự cố' },
@@ -56,6 +56,8 @@ function App() {
               <Route path="/street-lights/map" element={<StreetLightMap />} />
               <Route path="/street-lights/assets" element={<StreetLightAssets />} />
               <Route path="/street-lights/device-types" element={<StreetLightDeviceTypes />} />
+              <Route path="/street-lights/incidents" element={<StreetLightIncidents />} />
+              <Route path="/street-lights/incidents/new" element={<StreetLightIncidentNew />} />
               {streetLightPlaceholderRoutes.map((route) => (
                 <Route
                   key={route.path}

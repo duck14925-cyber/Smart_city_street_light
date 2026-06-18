@@ -24,6 +24,9 @@ export interface StreetLightDashboardData {
 export interface StreetLightQueryParams {
   khu_vuc?: string;
   trang_thai?: string;
+  muc_do_uu_tien?: string;
+  route_name?: string;
+  light?: string;
   limit?: number;
 }
 
@@ -148,6 +151,42 @@ export interface StreetLightDeviceType {
   ghi_chu?: string;
 }
 
+export interface StreetLightIncident {
+  name: string;
+  tieu_de: string;
+  loai_van_de: string;
+  khu_vuc: string;
+  ten_khu_vuc?: string;
+  route_name?: string | null;
+  ma_tai_san?: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  mo_ta_chi_tiet?: string;
+  muc_do_uu_tien?: string;
+  trang_thai?: string;
+  nguoi_bao_cao?: string;
+  sdt_lien_he?: string;
+  hinh_anh_minh_hoa?: string;
+  creation?: string;
+  modified?: string;
+}
+
+export interface CreateStreetLightIncidentPayload {
+  tieu_de: string;
+  ma_tai_san?: string;
+  street_light?: string;
+  route_name?: string;
+  khu_vuc: string;
+  latitude?: number;
+  longitude?: number;
+  mo_ta_chi_tiet: string;
+  muc_do_uu_tien?: string;
+  nguoi_bao_cao: string;
+  sdt_lien_he?: string;
+  hinh_anh_minh_hoa?: string;
+  trang_thai?: string;
+}
+
 const DASHBOARD_ENDPOINT =
   '/api/method/smart_city.smart_city.services.street_light_service.get_street_light_dashboard';
 const MAP_ENDPOINT =
@@ -178,6 +217,12 @@ const SAVE_DEVICE_TYPE_ENDPOINT =
   '/api/method/smart_city.smart_city.services.street_light_service.create_or_update_street_light_device_type';
 const DELETE_DEVICE_TYPE_ENDPOINT =
   '/api/method/smart_city.smart_city.services.street_light_service.delete_street_light_device_type';
+const INCIDENTS_ENDPOINT =
+  '/api/method/smart_city.smart_city.services.street_light_service.get_street_light_incidents';
+const CREATE_INCIDENT_ENDPOINT =
+  '/api/method/smart_city.smart_city.services.street_light_service.create_street_light_incident';
+const UPDATE_INCIDENT_STATUS_ENDPOINT =
+  '/api/method/smart_city.smart_city.services.street_light_service.update_incident_status';
 
 const emptyCharts = {
   lights_by_status: [],
@@ -421,6 +466,51 @@ export const deleteStreetLightDeviceType = async (maLoai: string) => {
     return getFrappePayload(response.data);
   } catch (error) {
     console.error('[StreetLightAPI] deleteStreetLightDeviceType failed:', error);
+    throw error;
+  }
+};
+
+export const getStreetLightIncidents = async (
+  params?: StreetLightQueryParams
+): Promise<StreetLightIncident[]> => {
+  try {
+    const response = await api.get(INCIDENTS_ENDPOINT, { params: buildParams(params) });
+    const payload = getFrappePayload(response.data);
+
+    return Array.isArray(payload) ? payload : [];
+  } catch (error) {
+    console.error('[StreetLightAPI] getStreetLightIncidents failed:', error);
+    throw error;
+  }
+};
+
+export const createStreetLightIncident = async (payload: CreateStreetLightIncidentPayload) => {
+  try {
+    const response = await api.post(CREATE_INCIDENT_ENDPOINT, undefined, {
+      params: {
+        data: JSON.stringify(payload),
+      },
+    });
+
+    return getFrappePayload(response.data);
+  } catch (error) {
+    console.error('[StreetLightAPI] createStreetLightIncident failed:', error);
+    throw error;
+  }
+};
+
+export const updateIncidentStatus = async (name: string, trangThai: string) => {
+  try {
+    const response = await api.post(UPDATE_INCIDENT_STATUS_ENDPOINT, undefined, {
+      params: {
+        name,
+        trang_thai: trangThai,
+      },
+    });
+
+    return getFrappePayload(response.data);
+  } catch (error) {
+    console.error('[StreetLightAPI] updateIncidentStatus failed:', error);
     throw error;
   }
 };

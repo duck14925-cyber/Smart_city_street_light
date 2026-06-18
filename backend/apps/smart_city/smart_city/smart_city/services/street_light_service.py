@@ -519,6 +519,36 @@ def _extract_route_name(asset_title):
     return None
 
 
+def _extract_marker_value(text, marker):
+    if not text:
+        return None
+
+    for line in str(text).splitlines():
+        line = line.strip()
+        if line.startswith(marker):
+            return line.replace(marker, "", 1).strip() or None
+
+    return None
+
+
+def _extract_incident_light_code(row):
+    detail_value = _extract_marker_value(row.get("mo_ta_chi_tiet"), "Mã đèn:")
+    if detail_value:
+        return detail_value
+
+    title = row.get("tieu_de") or ""
+    parts = title.replace(":", " ").split()
+    for part in parts:
+        if part.upper().startswith(("DEN-", "TESTDEN", "DCS")):
+            return part.strip()
+
+    return None
+
+
+def _extract_incident_route_name(row):
+    return _extract_marker_value(row.get("mo_ta_chi_tiet"), "Tuyến đường:")
+
+
 def _parse_route_points(value):
     if isinstance(value, str):
         try:
@@ -791,7 +821,14 @@ def create_street_light_route(data=None):
 
 
 @frappe.whitelist()
-def get_street_light_incidents(khu_vuc=None, trang_thai=None, muc_do_uu_tien=None, limit=100):
+def get_street_light_incidents(
+    khu_vuc=None,
+    trang_thai=None,
+    muc_do_uu_tien=None,
+    route_name=None,
+    light=None,
+    limit=100,
+):
     """Return street light incident reports."""
     try:
         filters = {"loai_van_de": STREET_LIGHT_INCIDENT_TYPE}
@@ -829,9 +866,15 @@ def get_street_light_incidents(khu_vuc=None, trang_thai=None, muc_do_uu_tien=Non
         for row in rows:
             location = parse_geolocation(row.get("vi_tri_gps"))
             incident = dict(row)
+            incident["route_name"] = _extract_incident_route_name(row)
+            incident["ma_tai_san"] = _extract_incident_light_code(row)
             incident["ten_khu_vuc"] = area_names.get(row.get("khu_vuc"))
             incident["latitude"] = location["latitude"]
             incident["longitude"] = location["longitude"]
+            if route_name and incident.get("route_name") != route_name:
+                continue
+            if light and light not in (incident.get("ma_tai_san"), incident.get("tieu_de"), incident.get("name")):
+                continue
             incidents.append(incident)
 
         return incidents
@@ -845,7 +888,25 @@ def create_street_light_incident(data=None):
     """Create a street light incident report."""
     try:
         data = _parse_payload(data)
-        _require_fields(data, ("tieu_de", "khu_vuc", "vi_tri_gps", "mo_ta_chi_tiet", "nguoi_bao_cao"))
+        _require_fields(data, ("tieu_de", "khu_vuc", "mo_ta_chi_tiet", "nguoi_bao_cao"))
+
+        latitude = data.get("latitude")
+        longitude = data.get("longitude")
+        gps_value = data.get("vi_tri_gps")
+        if not gps_value and latitude is not None and longitude is not None:
+            gps_value = "{0:.6f},{1:.6f}".format(float(latitude), float(longitude))
+        if not gps_value:
+            frappe.throw("Thiếu thông tin vị trí sự cố.")
+
+        light_code = data.get("ma_tai_san") or data.get("street_light")
+        route_name = data.get("route_name")
+        detail_lines = []
+        if light_code:
+            detail_lines.append("Mã đèn: {0}".format(light_code))
+        if route_name:
+            detail_lines.append("Tuyến đường: {0}".format(route_name))
+        detail_lines.append(str(data.get("mo_ta_chi_tiet")))
+        detail = "\n".join(detail_lines)
 
         doc = frappe.get_doc(
             {
@@ -853,8 +914,8 @@ def create_street_light_incident(data=None):
                 "loai_van_de": STREET_LIGHT_INCIDENT_TYPE,
                 "tieu_de": data.get("tieu_de"),
                 "khu_vuc": data.get("khu_vuc"),
-                "vi_tri_gps": data.get("vi_tri_gps"),
-                "mo_ta_chi_tiet": data.get("mo_ta_chi_tiet"),
+                "vi_tri_gps": gps_value,
+                "mo_ta_chi_tiet": detail,
                 "hinh_anh_minh_hoa": data.get("hinh_anh_minh_hoa"),
                 "muc_do_uu_tien": data.get("muc_do_uu_tien") or "Trung bình",
                 "nguoi_bao_cao": data.get("nguoi_bao_cao"),
@@ -865,7 +926,12 @@ def create_street_light_incident(data=None):
         doc.insert()
         frappe.db.commit()
 
+        location = parse_geolocation(doc.vi_tri_gps)
         result = doc.as_dict()
+        result["route_name"] = route_name
+        result["ma_tai_san"] = light_code
+        result["latitude"] = location["latitude"]
+        result["longitude"] = location["longitude"]
         _publish_update("incident_created", INCIDENT_DOCTYPE, doc.name, result)
         return {"name": doc.name, "data": result}
     except frappe.ValidationError:
