@@ -298,6 +298,21 @@ def _generate_inspection_code():
 
 def _format_inspection(row, area_names=None):
     area_names = area_names or {}
+    
+    related_lights = []
+    rel_json = row.get("related_lights_json")
+    if rel_json:
+        try:
+            related_lights = json.loads(rel_json)
+            if not isinstance(related_lights, list):
+                related_lights = []
+        except Exception:
+            related_lights = []
+
+    rel_count = row.get("related_lights_count")
+    if rel_count is None:
+        rel_count = len(related_lights)
+
     return {
         "name": row.get("name"),
         "ma_phieu": row.get("ma_phieu"),
@@ -319,6 +334,9 @@ def _format_inspection(row, area_names=None):
         "hinh_anh": row.get("hinh_anh"),
         "creation": row.get("creation"),
         "modified": row.get("modified"),
+        "scope_type": row.get("scope_type") or ("Nhiều đèn" if len(related_lights) > 1 else "Một đèn"),
+        "related_lights_count": rel_count,
+        "related_lights": related_lights,
     }
 
 
@@ -1854,6 +1872,9 @@ def get_street_light_inspections(params=None, **kwargs):
                 "hinh_anh",
                 "creation",
                 "modified",
+                "scope_type",
+                "related_lights_count",
+                "related_lights_json",
             ],
             limit_page_length=_safe_limit(filters_data.get("limit") or 100),
             order_by="modified desc",
@@ -1870,19 +1891,8 @@ def create_street_light_inspection(data=None):
     """Create a technical inspection ticket for a street light."""
     try:
         data = _parse_payload(data)
-        asset_name = data.get("thiet_bi")
-        asset_code = data.get("ma_tai_san")
-
-        if not asset_name and asset_code:
-            asset_name = frappe.db.exists(ASSET_DOCTYPE, {"ma_tai_san": asset_code})
-
-        if not asset_name:
-            frappe.throw("Vui lòng chọn thiết bị đèn đường cần kiểm tra.")
-
-        asset = frappe.get_doc(ASSET_DOCTYPE, asset_name)
-        if asset.loai_tai_san != STREET_LIGHT_ASSET_TYPE:
-            frappe.throw("Thiết bị được chọn không phải đèn chiếu sáng.")
-
+        affected_lights = data.get("related_lights") or data.get("affected_lights") or []
+        
         status = data.get("trang_thai") or "Hoàn thành"
         if status not in INSPECTION_STATUS_OPTIONS:
             frappe.throw("Trạng thái phiếu kiểm tra không hợp lệ.")
@@ -1895,16 +1905,78 @@ def create_street_light_inspection(data=None):
         if result not in INSPECTION_RESULT_OPTIONS:
             frappe.throw("Kết luận kiểm tra không hợp lệ.")
 
+        # Determine scope and resolve values
+        if len(affected_lights) > 1:
+            scope_type = "Nhiều đèn"
+            related_count = len(affected_lights)
+            related_lights_json = json.dumps(affected_lights, ensure_ascii=False)
+            ma_tai_san = "{0} đèn".format(related_count)
+            ten_tai_san = "Nhóm {0} đèn".format(related_count)
+            thiet_bi = None
+            
+            # Find common route
+            routes = {item.get("route_name") or item.get("tuyen_duong") for item in affected_lights if item.get("route_name") or item.get("tuyen_duong")}
+            if len(routes) == 1:
+                tuyen_duong = list(routes)[0]
+            elif len(routes) > 1:
+                tuyen_duong = "Nhiều tuyến"
+            else:
+                tuyen_duong = data.get("tuyen_duong") or ""
+                
+            # Find common area
+            areas = {item.get("khu_vuc") for item in affected_lights if item.get("khu_vuc")}
+            if len(areas) == 1:
+                khu_vuc = list(areas)[0]
+            else:
+                khu_vuc = data.get("khu_vuc") or ""
+        else:
+            scope_type = "Một đèn"
+            related_count = 1
+            
+            asset_name = data.get("thiet_bi")
+            asset_code = data.get("ma_tai_san")
+            
+            if not asset_name and not asset_code and len(affected_lights) == 1:
+                single_light = affected_lights[0]
+                asset_name = single_light.get("name") or single_light.get("thiet_bi")
+                asset_code = single_light.get("ma_tai_san")
+                
+            if not asset_name and asset_code:
+                asset_name = frappe.db.exists(ASSET_DOCTYPE, {"ma_tai_san": asset_code})
+
+            if not asset_name:
+                frappe.throw("Vui lòng chọn thiết bị đèn đường cần kiểm tra.")
+
+            asset = frappe.get_doc(ASSET_DOCTYPE, asset_name)
+            if asset.loai_tai_san != STREET_LIGHT_ASSET_TYPE:
+                frappe.throw("Thiết bị được chọn không phải đèn chiếu sáng.")
+                
+            thiet_bi = asset.name
+            ma_tai_san = asset.ma_tai_san
+            ten_tai_san = asset.ten_tai_san
+            tuyen_duong = data.get("tuyen_duong") or _extract_route_name(asset.ten_tai_san)
+            khu_vuc = data.get("khu_vuc") or asset.khu_vuc
+            
+            # format as array for related_lights_json
+            single_light_info = {
+                "thiet_bi": asset.name,
+                "ma_tai_san": asset.ma_tai_san,
+                "ten_tai_san": asset.ten_tai_san,
+                "tuyen_duong": tuyen_duong,
+                "khu_vuc": asset.khu_vuc
+            }
+            related_lights_json = json.dumps([single_light_info], ensure_ascii=False)
+
         doc = frappe.get_doc(
             {
                 "doctype": INSPECTION_DOCTYPE,
                 "ma_phieu": data.get("ma_phieu") or _generate_inspection_code(),
                 "ngay_kiem_tra": data.get("ngay_kiem_tra") or frappe.utils.nowdate(),
-                "thiet_bi": asset.name,
-                "ma_tai_san": asset.ma_tai_san,
-                "ten_tai_san": asset.ten_tai_san,
-                "tuyen_duong": data.get("tuyen_duong") or _extract_route_name(asset.ten_tai_san),
-                "khu_vuc": data.get("khu_vuc") or asset.khu_vuc,
+                "thiet_bi": thiet_bi,
+                "ma_tai_san": ma_tai_san,
+                "ten_tai_san": ten_tai_san,
+                "tuyen_duong": tuyen_duong,
+                "khu_vuc": khu_vuc,
                 "tinh_trang_dien": data.get("tinh_trang_dien") or "Bình thường",
                 "tinh_trang_cot": data.get("tinh_trang_cot") or "Tốt",
                 "tinh_trang_day": data.get("tinh_trang_day") or "Tốt",
@@ -1914,6 +1986,9 @@ def create_street_light_inspection(data=None):
                 "nguoi_kiem_tra": data.get("nguoi_kiem_tra"),
                 "trang_thai": status,
                 "hinh_anh": data.get("hinh_anh"),
+                "scope_type": scope_type,
+                "related_lights_count": related_count,
+                "related_lights_json": related_lights_json
             }
         )
         doc.insert(ignore_permissions=True)
@@ -2888,18 +2963,20 @@ def get_street_light_notifications():
     try:
         notifications = []
         
-        # New Incidents
+        # New and In-progress Incidents
         new_incidents = frappe.get_all(
             INCIDENT_DOCTYPE,
-            filters={"trang_thai": "Mới"},
-            fields=["name", "tieu_de", "creation", "muc_do_uu_tien"]
+            filters={"trang_thai": ["in", ["Mới", "Đang xử lý"]]},
+            fields=["name", "tieu_de", "creation", "muc_do_uu_tien", "trang_thai"]
         )
         for ind in new_incidents:
             level = "error" if ind.muc_do_uu_tien in ["Cao", "Rất cấp tính"] else "warning"
+            title = "Sự cố mới" if ind.trang_thai == "Mới" else "Sự cố đang xử lý"
+            msg = f"Sự cố mới được báo cáo: {ind.tieu_de or ind.name}" if ind.trang_thai == "Mới" else f"Sự cố đang được xử lý: {ind.tieu_de or ind.name}"
             notifications.append({
                 "id": f"inc-{ind.name}",
-                "title": "Sự cố mới",
-                "message": f"Sự cố mới được báo cáo: {ind.tieu_de or ind.name}",
+                "title": title,
+                "message": msg,
                 "type": "Sự cố",
                 "level": level,
                 "created_at": ind.creation,

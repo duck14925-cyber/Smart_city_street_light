@@ -245,6 +245,10 @@ export interface StreetLightInspection {
   hinh_anh?: string;
   creation?: string;
   modified?: string;
+  scope_type?: string;
+  related_lights_count?: number;
+  related_lights?: any[];
+  affected_lights?: any[];
 }
 
 export interface CreateStreetLightInspectionPayload {
@@ -260,6 +264,9 @@ export interface CreateStreetLightInspectionPayload {
   nguoi_kiem_tra?: string;
   trang_thai?: string;
   hinh_anh?: string;
+  scope_type?: string;
+  related_lights?: any[];
+  affected_lights?: any[];
 }
 
 export interface MaintenancePlan {

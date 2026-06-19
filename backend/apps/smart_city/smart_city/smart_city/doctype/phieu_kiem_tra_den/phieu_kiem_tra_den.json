@@ -22,7 +22,10 @@
   "mo_ta",
   "nguoi_kiem_tra",
   "trang_thai",
-  "hinh_anh"
+  "hinh_anh",
+  "scope_type",
+  "related_lights_count",
+  "related_lights_json"
  ],
  "fields": [
   {
@@ -122,6 +125,23 @@
    "fieldname": "hinh_anh",
    "fieldtype": "Attach",
    "label": "Hình ảnh"
+  },
+  {
+   "fieldname": "scope_type",
+   "fieldtype": "Select",
+   "label": "Phạm vi ảnh hưởng",
+   "options": "Một đèn\nNhiều đèn\nTuyến đường\nKhu vực"
+  },
+  {
+   "fieldname": "related_lights_count",
+   "fieldtype": "Int",
+   "label": "Số lượng đèn liên quan"
+  },
+  {
+   "fieldname": "related_lights_json",
+   "fieldtype": "Code",
+   "label": "Danh sách đèn liên quan",
+   "options": "JSON"
   }
  ],
  "grid_page_length": 50,
