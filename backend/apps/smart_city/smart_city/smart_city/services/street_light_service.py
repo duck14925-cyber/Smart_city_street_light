@@ -404,6 +404,24 @@ def _format_plan(row, area_names=None):
     area_names = area_names or {}
     data = dict(row)
     data["ten_khu_vuc"] = area_names.get(row.get("khu_vuc"))
+    
+    related_lights = []
+    rel_json = row.get("related_lights_json")
+    if rel_json:
+        try:
+            related_lights = json.loads(rel_json)
+            if not isinstance(related_lights, list):
+                related_lights = []
+        except Exception:
+            related_lights = []
+
+    rel_count = row.get("related_lights_count")
+    if rel_count is None:
+        rel_count = len(related_lights)
+
+    data["scope_type"] = row.get("scope_type") or ("Nhiều đèn" if len(related_lights) > 1 else "Một đèn")
+    data["related_lights_count"] = rel_count
+    data["related_lights"] = related_lights
     return data
 
 
@@ -1493,7 +1511,7 @@ def get_maintenance_plans(params=None, **kwargs):
         rows = frappe.get_all(
             MAINTENANCE_PLAN_DOCTYPE,
             filters=filters,
-            fields=["name", "ma_ke_hoach", "ten_ke_hoach", "loai_ke_hoach", "muc_uu_tien", "thiet_bi", "ma_tai_san", "ten_tai_san", "tuyen_duong", "khu_vuc", "ngay_bat_dau", "ngay_ket_thuc", "noi_dung", "nguoi_phu_trach", "trang_thai", "creation", "modified"],
+            fields=["name", "ma_ke_hoach", "ten_ke_hoach", "loai_ke_hoach", "muc_uu_tien", "thiet_bi", "ma_tai_san", "ten_tai_san", "tuyen_duong", "khu_vuc", "ngay_bat_dau", "ngay_ket_thuc", "noi_dung", "nguoi_phu_trach", "trang_thai", "creation", "modified", "scope_type", "related_lights_count", "related_lights_json"],
             limit_page_length=_safe_limit(filters_data.get("limit") or 100),
             order_by="modified desc",
         )
@@ -1509,23 +1527,94 @@ def create_maintenance_plan(data=None):
     try:
         data = _parse_payload(data)
         _require_fields(data, ("ten_ke_hoach",))
-        asset = _resolve_street_light_asset(data)
-        values = _fill_asset_values(
+        affected_lights = data.get("related_lights") or data.get("affected_lights") or []
+
+        # Determine scope and resolve values
+        if len(affected_lights) > 1:
+            scope_type = "Nhiều đèn"
+            related_count = len(affected_lights)
+            related_lights_json = json.dumps(affected_lights, ensure_ascii=False)
+            ma_tai_san = "{0} đèn".format(related_count)
+            ten_tai_san = "Nhóm {0} đèn".format(related_count)
+            thiet_bi = None
+            
+            # Find common route
+            routes = {item.get("route_name") or item.get("tuyen_duong") for item in affected_lights if item.get("route_name") or item.get("tuyen_duong")}
+            if len(routes) == 1:
+                tuyen_duong = list(routes)[0]
+            elif len(routes) > 1:
+                tuyen_duong = "Nhiều tuyến"
+            else:
+                tuyen_duong = data.get("tuyen_duong") or ""
+                
+            # Find common area
+            areas = {item.get("khu_vuc") for item in affected_lights if item.get("khu_vuc")}
+            if len(areas) == 1:
+                khu_vuc = list(areas)[0]
+            elif len(areas) > 1:
+                khu_vuc = "Nhiều khu vực"
+            else:
+                khu_vuc = data.get("khu_vuc") or ""
+        else:
+            scope_type = "Một đèn"
+            related_count = 1
+            
+            asset_name = data.get("thiet_bi")
+            asset_code = data.get("ma_tai_san")
+            
+            if not asset_name and not asset_code and len(affected_lights) == 1:
+                single_light = affected_lights[0]
+                asset_name = single_light.get("name") or single_light.get("thiet_bi")
+                asset_code = single_light.get("ma_tai_san")
+                
+            if not asset_name and asset_code:
+                asset_name = frappe.db.exists(ASSET_DOCTYPE, {"ma_tai_san": asset_code})
+
+            if not asset_name:
+                frappe.throw("Vui lòng chọn thiết bị đèn đường cần bảo trì.")
+
+            asset = frappe.get_doc(ASSET_DOCTYPE, asset_name)
+            if asset.loai_tai_san != STREET_LIGHT_ASSET_TYPE:
+                frappe.throw("Thiết bị được chọn không phải đèn chiếu sáng.")
+                
+            thiet_bi = asset.name
+            ma_tai_san = asset.ma_tai_san
+            ten_tai_san = asset.ten_tai_san
+            tuyen_duong = data.get("tuyen_duong") or _extract_route_name(asset.ten_tai_san)
+            khu_vuc = data.get("khu_vuc") or asset.khu_vuc
+            
+            # format as array for related_lights_json
+            single_light_info = {
+                "thiet_bi": asset.name,
+                "ma_tai_san": asset.ma_tai_san,
+                "ten_tai_san": asset.ten_tai_san,
+                "tuyen_duong": tuyen_duong,
+                "khu_vuc": asset.khu_vuc
+            }
+            related_lights_json = json.dumps([single_light_info], ensure_ascii=False)
+
+        doc = frappe.get_doc(
             {
                 "doctype": MAINTENANCE_PLAN_DOCTYPE,
                 "ma_ke_hoach": data.get("ma_ke_hoach") or _generate_plan_code(),
                 "ten_ke_hoach": data.get("ten_ke_hoach"),
                 "loai_ke_hoach": data.get("loai_ke_hoach") or "Bảo trì định kỳ",
                 "muc_uu_tien": data.get("muc_uu_tien") or "Trung bình",
+                "thiet_bi": thiet_bi,
+                "ma_tai_san": ma_tai_san,
+                "ten_tai_san": ten_tai_san,
+                "tuyen_duong": tuyen_duong,
+                "khu_vuc": khu_vuc,
                 "ngay_bat_dau": data.get("ngay_bat_dau"),
                 "ngay_ket_thuc": data.get("ngay_ket_thuc"),
                 "noi_dung": data.get("noi_dung"),
                 "nguoi_phu_trach": data.get("nguoi_phu_trach"),
                 "trang_thai": data.get("trang_thai") or "Lập kế hoạch",
-            },
-            asset,
+                "scope_type": scope_type,
+                "related_lights_count": related_count,
+                "related_lights_json": related_lights_json
+            }
         )
-        doc = frappe.get_doc(values)
         doc.insert(ignore_permissions=True)
         frappe.db.commit()
         area_names = _get_area_names([doc.khu_vuc])

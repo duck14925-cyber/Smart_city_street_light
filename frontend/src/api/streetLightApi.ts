@@ -286,6 +286,10 @@ export interface MaintenancePlan {
   noi_dung?: string;
   nguoi_phu_trach?: string;
   trang_thai?: string;
+  scope_type?: string;
+  related_lights_count?: number;
+  related_lights?: any[];
+  affected_lights?: any[];
 }
 
 export interface CreateMaintenancePlanPayload {
@@ -293,10 +297,17 @@ export interface CreateMaintenancePlanPayload {
   loai_ke_hoach?: string;
   muc_uu_tien?: string;
   thiet_bi?: string;
+  ma_tai_san?: string;
+  tuyen_duong?: string;
+  khu_vuc?: string;
   ngay_bat_dau?: string;
   ngay_ket_thuc?: string;
   noi_dung?: string;
   nguoi_phu_trach?: string;
+  trang_thai?: string;
+  scope_type?: string;
+  related_lights?: any[];
+  affected_lights?: any[];
 }
 
 export interface WorkOrder {

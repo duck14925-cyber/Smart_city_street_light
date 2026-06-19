@@ -6,7 +6,7 @@
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
- "field_order": ["ma_ke_hoach", "ten_ke_hoach", "loai_ke_hoach", "muc_uu_tien", "thiet_bi", "ma_tai_san", "ten_tai_san", "tuyen_duong", "khu_vuc", "ngay_bat_dau", "ngay_ket_thuc", "noi_dung", "nguoi_phu_trach", "trang_thai"],
+ "field_order": ["ma_ke_hoach", "ten_ke_hoach", "loai_ke_hoach", "muc_uu_tien", "thiet_bi", "ma_tai_san", "ten_tai_san", "tuyen_duong", "khu_vuc", "ngay_bat_dau", "ngay_ket_thuc", "noi_dung", "nguoi_phu_trach", "trang_thai", "scope_type", "related_lights_count", "related_lights_json"],
  "fields": [
   {"fieldname": "ma_ke_hoach", "fieldtype": "Data", "in_list_view": 1, "label": "Mã kế hoạch", "reqd": 1, "unique": 1},
   {"fieldname": "ten_ke_hoach", "fieldtype": "Data", "in_list_view": 1, "label": "Tên kế hoạch", "reqd": 1},
@@ -21,7 +21,10 @@
   {"fieldname": "ngay_ket_thuc", "fieldtype": "Date", "label": "Ngày kết thúc"},
   {"fieldname": "noi_dung", "fieldtype": "Small Text", "label": "Nội dung"},
   {"fieldname": "nguoi_phu_trach", "fieldtype": "Data", "label": "Người phụ trách"},
-  {"default": "Lập kế hoạch", "fieldname": "trang_thai", "fieldtype": "Select", "in_list_view": 1, "label": "Trạng thái", "options": "Lập kế hoạch\nĐang thực hiện\nHoàn thành\nHủy"}
+  {"default": "Lập kế hoạch", "fieldname": "trang_thai", "fieldtype": "Select", "in_list_view": 1, "label": "Trạng thái", "options": "Lập kế hoạch\nĐang thực hiện\nHoàn thành\nHủy"},
+  {"fieldname": "scope_type", "fieldtype": "Select", "label": "Phạm vi ảnh hưởng", "options": "Một đèn\nNhiều đèn\nTuyến đường\nKhu vực"},
+  {"fieldname": "related_lights_count", "fieldtype": "Int", "label": "Số lượng đèn liên quan"},
+  {"fieldname": "related_lights_json", "fieldtype": "Code", "label": "Danh sách đèn liên quan", "options": "JSON"}
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
