@@ -58,7 +58,7 @@ const IncidentDetailModal = ({
           ✕
         </button>
       </div>
-      <div className="grid gap-4 p-6 md:grid-cols-2">
+      <div className="grid gap-4 p-6 md:grid-cols-2 max-h-[70vh] overflow-y-auto">
         {[
           ['Mã đèn', incident.ma_tai_san || 'Chưa xác định'],
           ['Tuyến đường', incident.route_name || 'Chưa xác định'],
@@ -82,6 +82,40 @@ const IncidentDetailModal = ({
             {incident.mo_ta_chi_tiet || 'Chưa có mô tả.'}
           </p>
         </div>
+
+        {incident.related_lights && incident.related_lights.length > 0 && (
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 md:col-span-2">
+            <p className="text-xs font-bold uppercase tracking-wide text-slate-400 mb-2">
+              Danh sách đèn liên quan ({incident.related_lights.length} thiết bị)
+            </p>
+            <div className="overflow-x-auto max-h-48 rounded-xl border border-slate-200 bg-white">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 text-slate-400 font-bold uppercase">
+                  <tr>
+                    <th className="px-3 py-2">Mã đèn</th>
+                    <th className="px-3 py-2">Tuyến đường</th>
+                    <th className="px-3 py-2">Khu vực</th>
+                    <th className="px-3 py-2">Tọa độ</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-medium text-slate-600">
+                  {incident.related_lights.map((light: any) => (
+                    <tr key={light.name || light.ma_tai_san} className="hover:bg-slate-50/50">
+                      <td className="px-3 py-2 font-bold text-slate-900">{light.ma_tai_san}</td>
+                      <td className="px-3 py-2">{light.route_name || '—'}</td>
+                      <td className="px-3 py-2">{light.ten_khu_vuc || light.khu_vuc || '—'}</td>
+                      <td className="px-3 py-2">
+                        {light.latitude !== null && light.longitude !== null && light.latitude !== undefined && light.longitude !== undefined
+                          ? `${Number(light.latitude).toFixed(6)}, ${Number(light.longitude).toFixed(6)}`
+                          : '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
       <div className="flex justify-end border-t border-slate-100 px-6 py-5">
         <button onClick={onClose} className="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-bold text-white">
@@ -230,7 +264,17 @@ const StreetLightIncidents = () => {
                 <tbody className="divide-y divide-slate-100">
                   {filteredIncidents.map((incident) => (
                     <tr key={incident.name} className="hover:bg-red-50/30">
-                      <td className="px-5 py-4"><p className="font-bold text-slate-950">{incident.tieu_de}</p><p className="mt-1 font-mono text-xs text-slate-400">{incident.name}</p></td>
+                      <td className="px-5 py-4">
+                        <p className="font-bold text-slate-950">{incident.tieu_de}</p>
+                        <div className="mt-1 flex items-center gap-2 flex-wrap">
+                          <span className="font-mono text-xs text-slate-400">{incident.name}</span>
+                          {incident.related_lights_count && incident.related_lights_count > 1 ? (
+                            <span className="inline-flex rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-black uppercase text-orange-800">
+                              {incident.related_lights_count} đèn ảnh hưởng
+                            </span>
+                          ) : null}
+                        </div>
+                      </td>
                       <td className="px-5 py-4 text-sm font-semibold text-slate-600"><p>{incident.ma_tai_san || 'Chưa xác định'}</p><p className="mt-1 text-xs text-slate-400">{incident.route_name || 'Chưa có tuyến'}</p></td>
                       <td className="px-5 py-4 text-sm font-semibold text-slate-600">{incident.ten_khu_vuc || incident.khu_vuc || 'Chưa xác định'}</td>
                       <td className="px-5 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-bold ring-1 ${badgeClass(incident.muc_do_uu_tien, priorityClasses)}`}>{incident.muc_do_uu_tien || 'Không rõ'}</span></td>

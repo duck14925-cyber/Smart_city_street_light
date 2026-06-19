@@ -17,7 +17,10 @@
   "muc_do_uu_tien",
   "nguoi_bao_cao",
   "sdt_lien_he",
-  "trang_thai"
+  "trang_thai",
+  "scope_type",
+  "related_lights_count",
+  "related_lights_json"
  ],
  "fields": [
   {
@@ -93,6 +96,23 @@
    "fieldtype": "Select",
    "label": "Tr\u1ea1ng th\u00e1i",
    "options": "M\u1edbi\n\u0110ang x\u1eed l\u00fd\n\u0110\u00e3 gi\u1ea3i quy\u1ebft\n\u0110\u00e3 \u0111\u00f3ng"
+  },
+  {
+   "fieldname": "scope_type",
+   "fieldtype": "Select",
+   "label": "Ph\u1ea1m vi \u1ea3nh h\u01b0\u1edfng",
+   "options": "M\u1ed9t \u0111\u00e8n\nNhi\u1ec1u \u0111\u00e8n\nTuy\u1ebfn \u0111\u01b0\u1eddng\nKhu v\u1ef1c"
+  },
+  {
+   "fieldname": "related_lights_count",
+   "fieldtype": "Int",
+   "label": "S\u1ed1 l\u01b0\u1ee3ng \u0111\u00e8n li\u00ean quan"
+  },
+  {
+   "fieldname": "related_lights_json",
+   "fieldtype": "Code",
+   "label": "Danh s\u00e1ch \u0111\u00e8n li\u00ean quan",
+   "options": "JSON"
   }
  ],
  "grid_page_length": 50,

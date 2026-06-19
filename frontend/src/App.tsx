@@ -1,4 +1,4 @@
-import { Navigate, Routes, Route } from 'react-router-dom';
+import { Navigate, Routes, Route, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
@@ -13,37 +13,30 @@ import StreetLightAssets from './pages/StreetLightAssets';
 import StreetLightDeviceTypes from './pages/StreetLightDeviceTypes';
 import StreetLightIncidents from './pages/StreetLightIncidents';
 import StreetLightIncidentNew from './pages/StreetLightIncidentNew';
-import StreetLightPlaceholder from './pages/StreetLightPlaceholder';
-
-const streetLightPlaceholderRoutes = [
-  { path: '/street-lights/my-work', title: 'Công việc của tôi' },
-  { path: '/street-lights/notifications', title: 'Thông báo' },
-  { path: '/street-lights/categories/severity', title: 'Mức độ sự cố' },
-  { path: '/street-lights/categories/report-sources', title: 'Nguồn báo cáo' },
-  { path: '/street-lights/categories/fault-types', title: 'Loại sự cố' },
-  { path: '/street-lights/inspections', title: 'Phiếu kiểm tra' },
-  { path: '/street-lights/categories/electrical-conditions', title: 'Tình trạng điện' },
-  { path: '/street-lights/categories/pole-conditions', title: 'Tình trạng cột' },
-  { path: '/street-lights/categories/wire-conditions', title: 'Tình trạng dây' },
-  { path: '/street-lights/categories/safety-levels', title: 'Mức an toàn' },
-  { path: '/street-lights/plans', title: 'Kế hoạch bảo trì' },
-  { path: '/street-lights/work-orders', title: 'Phiếu công việc' },
-  { path: '/street-lights/work-logs', title: 'Nhật ký thi công' },
-  { path: '/street-lights/acceptance', title: 'Nghiệm thu' },
-  { path: '/street-lights/reports/areas', title: 'Theo khu vực' },
-  { path: '/street-lights/reports/incidents', title: 'Sự cố' },
-  { path: '/street-lights/reports/work-orders', title: 'Phiếu công việc' },
-  { path: '/street-lights/reports/unit-performance', title: 'Hiệu suất đơn vị' },
-];
+import StreetLightInspections from './pages/StreetLightInspections';
+import StreetLightMaintenancePlans from './pages/StreetLightMaintenancePlans';
+import StreetLightWorkOrders from './pages/StreetLightWorkOrders';
+import StreetLightWorkLogs from './pages/StreetLightWorkLogs';
+import StreetLightAcceptance from './pages/StreetLightAcceptance';
+import StreetLightReportsArea from './pages/StreetLightReportsArea';
+import StreetLightReportsIncidents from './pages/StreetLightReportsIncidents';
+import StreetLightReportsWorkOrders from './pages/StreetLightReportsWorkOrders';
+import StreetLightReportsUnitPerformance from './pages/StreetLightReportsUnitPerformance';
+import StreetLightMyWork from './pages/StreetLightMyWork';
+import StreetLightNotifications from './pages/StreetLightNotifications';
+import StreetLightCategoryPage from './pages/StreetLightCategoryPage';
 
 function App() {
+  const location = useLocation();
+  const isMapRoute = location.pathname === '/street-lights/map';
+
   return (
     <div className="flex h-screen overflow-hidden bg-slate-100 font-sans text-slate-900">
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0">
         <Navbar />
-        <main className="flex-1 overflow-auto p-6 md:p-8">
-          <div className="w-full">
+        <main className={`flex-1 ${isMapRoute ? 'overflow-hidden p-0 flex flex-col' : 'overflow-auto p-6 md:p-8'}`}>
+          <div className={`w-full ${isMapRoute ? 'flex-1 h-full flex flex-col' : ''}`}>
             <Routes>
               <Route path="/" element={<Navigate to="/street-lights/dashboard" replace />} />
               <Route path="/khu-vuc" element={<KhuVuc />} />
@@ -58,13 +51,25 @@ function App() {
               <Route path="/street-lights/device-types" element={<StreetLightDeviceTypes />} />
               <Route path="/street-lights/incidents" element={<StreetLightIncidents />} />
               <Route path="/street-lights/incidents/new" element={<StreetLightIncidentNew />} />
-              {streetLightPlaceholderRoutes.map((route) => (
-                <Route
-                  key={route.path}
-                  path={route.path}
-                  element={<StreetLightPlaceholder title={route.title} />}
-                />
-              ))}
+              <Route path="/street-lights/inspections" element={<StreetLightInspections />} />
+              <Route path="/street-lights/plans" element={<StreetLightMaintenancePlans />} />
+              <Route path="/street-lights/work-orders" element={<StreetLightWorkOrders />} />
+              <Route path="/street-lights/work-logs" element={<StreetLightWorkLogs />} />
+              <Route path="/street-lights/acceptance" element={<StreetLightAcceptance />} />
+              <Route path="/street-lights/reports/areas" element={<StreetLightReportsArea />} />
+              <Route path="/street-lights/reports/incidents" element={<StreetLightReportsIncidents />} />
+              <Route path="/street-lights/reports/work-orders" element={<StreetLightReportsWorkOrders />} />
+              <Route path="/street-lights/reports/unit-performance" element={<StreetLightReportsUnitPerformance />} />
+              
+              <Route path="/street-lights/my-work" element={<StreetLightMyWork />} />
+              <Route path="/street-lights/notifications" element={<StreetLightNotifications />} />
+              <Route path="/street-lights/categories/severity" element={<StreetLightCategoryPage categoryKey="severity" title="Mức độ sự cố" description="Quản lý các mức độ nghiêm trọng của sự cố" />} />
+              <Route path="/street-lights/categories/report-sources" element={<StreetLightCategoryPage categoryKey="report_sources" title="Nguồn báo cáo" description="Các kênh tiếp nhận phản ánh sự cố" />} />
+              <Route path="/street-lights/categories/fault-types" element={<StreetLightCategoryPage categoryKey="fault_types" title="Loại sự cố" description="Phân loại các sự cố thường gặp" />} />
+              <Route path="/street-lights/categories/electrical-conditions" element={<StreetLightCategoryPage categoryKey="electrical_conditions" title="Tình trạng điện" description="Các trạng thái về nguồn điện" />} />
+              <Route path="/street-lights/categories/pole-conditions" element={<StreetLightCategoryPage categoryKey="pole_conditions" title="Tình trạng cột" description="Tình trạng vật lý của cột đèn" />} />
+              <Route path="/street-lights/categories/wire-conditions" element={<StreetLightCategoryPage categoryKey="wire_conditions" title="Tình trạng dây" description="Tình trạng dây dẫn và cáp ngầm" />} />
+              <Route path="/street-lights/categories/safety-levels" element={<StreetLightCategoryPage categoryKey="safety_levels" title="Mức an toàn" description="Đánh giá mức độ an toàn" />} />
             </Routes>
           </div>
         </main>

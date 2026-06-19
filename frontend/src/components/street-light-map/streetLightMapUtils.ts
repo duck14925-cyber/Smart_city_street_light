@@ -47,6 +47,17 @@ export const normalizeRouteName = (light: StreetLight) => {
   return '';
 };
 
+export const normalizeRouteTitle = (title: string | null | undefined): string => {
+  if (!title) return '';
+  let res = title.trim().toUpperCase();
+  if (res.startsWith('ĐƯỜNG ')) {
+    res = res.slice(6).trim();
+  } else if (res.startsWith('ĐƯỜNG')) {
+    res = res.slice(5).trim();
+  }
+  return res;
+};
+
 export const buildAreaOptions = (lights: StreetLight[]) => {
   const areaMap = new Map<string, string>();
 
@@ -130,7 +141,7 @@ export const filterLights = (lights: StreetLight[], filters: StreetLightMapFilte
     const routeName = normalizeRouteName(light);
     const matchesStatus = filters.trang_thai ? light.trang_thai === filters.trang_thai : true;
     const matchesArea = filters.khu_vuc ? light.khu_vuc === filters.khu_vuc : true;
-    const matchesRoute = filters.route_name ? routeName === filters.route_name : true;
+    const matchesRoute = filters.route_name ? normalizeRouteTitle(routeName) === normalizeRouteTitle(filters.route_name) : true;
     const searchableText = [
       light.ma_tai_san,
       light.ten_tai_san,

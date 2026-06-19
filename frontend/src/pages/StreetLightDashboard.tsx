@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  getStreetLightDashboard,
+  getStreetLightOverviewReport,
   type StreetLightChartItem,
   type StreetLightDashboardData,
 } from '../api/streetLightApi';
@@ -183,7 +183,7 @@ const StreetLightDashboard = () => {
     setError('');
 
     try {
-      const data = await getStreetLightDashboard();
+      const data = await getStreetLightOverviewReport();
       setDashboard(data);
       setLastUpdated(
         new Date().toLocaleTimeString('vi-VN', {
@@ -249,6 +249,48 @@ const StreetLightDashboard = () => {
         icon: '✓',
         colorClass: 'bg-gradient-to-br from-sky-500 to-emerald-500',
       },
+      {
+        title: 'Tuyến đường',
+        value: dashboard.total_routes ?? 0,
+        subtitle: 'Tuyến GIS đã vẽ',
+        icon: '🛣️',
+        colorClass: 'bg-gradient-to-br from-cyan-500 to-blue-500',
+      },
+      {
+        title: 'Phiếu kiểm tra',
+        value: dashboard.total_inspections ?? 0,
+        subtitle: 'Kiểm tra kỹ thuật',
+        icon: '🧾',
+        colorClass: 'bg-gradient-to-br from-violet-500 to-indigo-500',
+      },
+      {
+        title: 'Kế hoạch bảo trì',
+        value: dashboard.total_plans ?? 0,
+        subtitle: 'Kế hoạch đang quản lý',
+        icon: '📅',
+        colorClass: 'bg-gradient-to-br from-teal-500 to-emerald-500',
+      },
+      {
+        title: 'Phiếu công việc',
+        value: dashboard.total_work_orders ?? 0,
+        subtitle: 'Giao việc thi công',
+        icon: '🛠️',
+        colorClass: 'bg-gradient-to-br from-orange-500 to-amber-500',
+      },
+      {
+        title: 'Nhật ký thi công',
+        value: dashboard.total_work_logs ?? 0,
+        subtitle: 'Ghi nhận thực hiện',
+        icon: '📘',
+        colorClass: 'bg-gradient-to-br from-blue-500 to-indigo-500',
+      },
+      {
+        title: 'Nghiệm thu',
+        value: dashboard.total_acceptance_records ?? 0,
+        subtitle: 'Biên bản hoàn tất',
+        icon: '🏁',
+        colorClass: 'bg-gradient-to-br from-emerald-500 to-cyan-500',
+      },
     ];
   }, [dashboard]);
 
@@ -303,7 +345,7 @@ const StreetLightDashboard = () => {
             <div className="space-y-6 p-6">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {loading
-                  ? [1, 2, 3, 4, 5, 6].map((item) => <StatSkeleton key={item} />)
+                  ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((item) => <StatSkeleton key={item} />)
                   : statCards.map((card) => <StatCard key={card.title} {...card} />)}
               </div>
 
@@ -343,6 +385,30 @@ const StreetLightDashboard = () => {
                         icon="⚡"
                         items={dashboard.charts.incidents_by_priority}
                         emptyText="Chưa có dữ liệu mức độ ưu tiên."
+                      />
+                      <AnalysisPanel
+                        title="Phiếu công việc theo trạng thái"
+                        icon="🛠️"
+                        items={dashboard.charts.work_orders_by_status ?? []}
+                        emptyText="Chưa có dữ liệu phiếu công việc."
+                      />
+                      <AnalysisPanel
+                        title="Phiếu kiểm tra theo kết luận"
+                        icon="🧾"
+                        items={dashboard.charts.inspections_by_result ?? []}
+                        emptyText="Chưa có dữ liệu phiếu kiểm tra."
+                      />
+                      <AnalysisPanel
+                        title="Kế hoạch theo trạng thái"
+                        icon="📅"
+                        items={dashboard.charts.plans_by_status ?? []}
+                        emptyText="Chưa có dữ liệu kế hoạch."
+                      />
+                      <AnalysisPanel
+                        title="Nghiệm thu theo kết quả"
+                        icon="🏁"
+                        items={dashboard.charts.acceptance_by_result ?? []}
+                        emptyText="Chưa có dữ liệu nghiệm thu."
                       />
                     </>
                   )}

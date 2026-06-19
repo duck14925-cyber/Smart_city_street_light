@@ -1,0 +1,154 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:ma_phieu",
+ "creation": "2026-06-18 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "ma_phieu",
+  "ngay_kiem_tra",
+  "thiet_bi",
+  "ma_tai_san",
+  "ten_tai_san",
+  "tuyen_duong",
+  "khu_vuc",
+  "tinh_trang_dien",
+  "tinh_trang_cot",
+  "tinh_trang_day",
+  "muc_an_toan",
+  "ket_luan",
+  "mo_ta",
+  "nguoi_kiem_tra",
+  "trang_thai",
+  "hinh_anh"
+ ],
+ "fields": [
+  {
+   "fieldname": "ma_phieu",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Mã phiếu",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "ngay_kiem_tra",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Ngày kiểm tra"
+  },
+  {
+   "fieldname": "thiet_bi",
+   "fieldtype": "Link",
+   "label": "Thiết bị",
+   "options": "Tai Nguyen Ha Tang"
+  },
+  {
+   "fieldname": "ma_tai_san",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Mã tài sản"
+  },
+  {
+   "fieldname": "ten_tai_san",
+   "fieldtype": "Data",
+   "label": "Tên tài sản"
+  },
+  {
+   "fieldname": "tuyen_duong",
+   "fieldtype": "Data",
+   "label": "Tuyến đường"
+  },
+  {
+   "fieldname": "khu_vuc",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Khu vực",
+   "options": "Khu Vuc"
+  },
+  {
+   "fieldname": "tinh_trang_dien",
+   "fieldtype": "Select",
+   "label": "Tình trạng điện",
+   "options": "Bình thường\nChập chờn\nMất điện\nQuá tải\nKhác"
+  },
+  {
+   "fieldname": "tinh_trang_cot",
+   "fieldtype": "Select",
+   "label": "Tình trạng cột",
+   "options": "Tốt\nNghiêng\nGỉ sét\nNứt gãy\nCần thay thế"
+  },
+  {
+   "fieldname": "tinh_trang_day",
+   "fieldtype": "Select",
+   "label": "Tình trạng dây",
+   "options": "Tốt\nChùng dây\nĐứt dây\nHở dây\nCần thay thế"
+  },
+  {
+   "fieldname": "muc_an_toan",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Mức an toàn",
+   "options": "An toàn\nCần theo dõi\nNguy hiểm\nRất nguy hiểm"
+  },
+  {
+   "fieldname": "ket_luan",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Kết luận",
+   "options": "Đạt\nCần bảo trì\nCần sửa chữa\nCần thay thế"
+  },
+  {
+   "fieldname": "mo_ta",
+   "fieldtype": "Small Text",
+   "label": "Mô tả"
+  },
+  {
+   "fieldname": "nguoi_kiem_tra",
+   "fieldtype": "Data",
+   "label": "Người kiểm tra"
+  },
+  {
+   "default": "Nháp",
+   "fieldname": "trang_thai",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Trạng thái",
+   "options": "Nháp\nHoàn thành\nĐã tạo kế hoạch"
+  },
+  {
+   "fieldname": "hinh_anh",
+   "fieldtype": "Attach",
+   "label": "Hình ảnh"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-06-18 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Smart City",
+ "name": "Phieu Kiem Tra Den",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

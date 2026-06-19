@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Đèn trang trí">
+  <circle cx="32" cy="32" r="30" fill="#faf5ff"/>
+  <rect x="30" y="31" width="5" height="24" rx="2" fill="#7e22ce"/>
+  <rect x="23" y="55" width="19" height="4" rx="2" fill="#581c87"/>
+  <path d="M25 32 C25 23 39 23 39 32" fill="none" stroke="#9333ea" stroke-width="4" stroke-linecap="round"/>
+  <rect x="24" y="18" width="16" height="15" rx="5" fill="#ec4899"/>
+  <circle cx="32" cy="25" r="9" fill="#f9a8d4" opacity=".6"/>
+  <path d="M27 33h10" stroke="#fdf4ff" stroke-width="2" stroke-linecap="round"/>
+</svg>

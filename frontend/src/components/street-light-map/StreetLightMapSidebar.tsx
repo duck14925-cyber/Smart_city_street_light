@@ -12,6 +12,7 @@ const STATUS_OPTIONS = ['', 'Hoạt động', 'Hỏng', 'Bảo trì'];
 interface StreetLightMapSidebarProps {
   lights: StreetLight[];
   allLights: StreetLight[];
+  areaOptions?: Array<{ value: string; label: string }>;
   selectedLight: StreetLight | null;
   filters: StreetLightMapFilters;
   mapMode: MapMode;
@@ -44,6 +45,7 @@ const EmptyState = ({ message }: { message: string }) => (
 const StreetLightMapSidebar = ({
   lights,
   allLights,
+  areaOptions: providedAreaOptions,
   selectedLight,
   filters,
   mapMode,
@@ -51,12 +53,14 @@ const StreetLightMapSidebar = ({
   onChangeFilters,
   onSelectLight,
 }: StreetLightMapSidebarProps) => {
-  const areaOptions = buildAreaOptions(allLights);
+  const areaOptions = providedAreaOptions && providedAreaOptions.length > 0
+    ? providedAreaOptions
+    : buildAreaOptions(allLights);
   const routeOptions = buildRouteOptions(allLights);
 
   return (
-    <aside className="border-r border-slate-100 bg-slate-50/90">
-      <div className="border-b border-slate-200 bg-slate-900 px-4 py-4 text-white">
+    <aside className="flex h-full flex-col bg-slate-50/90 overflow-hidden">
+      <div className="shrink-0 border-b border-slate-200 bg-slate-900 px-4 py-4 text-white">
         <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Bộ lọc</p>
         <div className="mt-4 space-y-3">
           <div>
@@ -118,8 +122,8 @@ const StreetLightMapSidebar = ({
         </div>
       </div>
 
-      <div className="p-4">
-        <div className="mb-4 flex items-center justify-between gap-3">
+      <div className="flex flex-col flex-1 p-4 overflow-hidden">
+        <div className="shrink-0 mb-4 flex items-center justify-between gap-3">
           <div>
             <h2 className="text-base font-bold text-slate-900">Danh sách đèn</h2>
             <p className="mt-1 text-xs font-semibold text-slate-400">
@@ -131,13 +135,13 @@ const StreetLightMapSidebar = ({
           </span>
         </div>
 
-        <div className="max-h-[480px] overflow-y-auto pr-1 lg:max-h-[520px]">
+        <div className="flex-1 overflow-y-auto pr-1">
           {loading ? (
             <LightListSkeleton />
           ) : lights.length === 0 ? (
             <EmptyState message="Không có đèn phù hợp với bộ lọc hiện tại." />
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-3 pb-4">
               {lights.map((light) => {
                 const isSelected = selectedLight?.name === light.name;
                 const routeName = normalizeRouteName(light);

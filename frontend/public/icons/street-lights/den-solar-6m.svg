@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Đèn solar 6m">
+  <circle cx="32" cy="32" r="30" fill="#fff7ed"/>
+  <rect x="30" y="29" width="5" height="26" rx="2" fill="#78716c"/>
+  <rect x="23" y="55" width="19" height="4" rx="2" fill="#57534e"/>
+  <g transform="rotate(-15 32 20)">
+    <rect x="19" y="14" width="25" height="9" rx="2" fill="#f59e0b"/>
+    <path d="M24 14v9M30 14v9M36 14v9M19 18.5h25" stroke="#fed7aa" stroke-width="1.2"/>
+  </g>
+  <path d="M32 30 C37 28 40 27 44 26" fill="none" stroke="#78716c" stroke-width="3" stroke-linecap="round"/>
+  <rect x="41" y="23" width="10" height="6" rx="2" fill="#ea580c"/>
+  <circle cx="46" cy="31" r="6" fill="#fdba74" opacity=".55"/>
+</svg>

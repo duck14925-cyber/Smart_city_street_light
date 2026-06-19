@@ -64,6 +64,7 @@ export interface StreetLightCluster {
 }
 
 export interface StreetLightRoute {
+  route_id?: string;
   name: string;
   ma_tuyen: string;
   ten_tuyen: string;

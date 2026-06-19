@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Đèn LED 9m">
+  <circle cx="32" cy="32" r="30" fill="#ecfdf5"/>
+  <rect x="30" y="24" width="5" height="31" rx="2" fill="#64748b"/>
+  <rect x="23" y="55" width="19" height="4" rx="2" fill="#475569"/>
+  <path d="M32 24 C38 22 42 20 47 18" fill="none" stroke="#64748b" stroke-width="3.5" stroke-linecap="round"/>
+  <rect x="43" y="15" width="13" height="7" rx="3" fill="#16a34a"/>
+  <circle cx="49" cy="24" r="7" fill="#86efac" opacity=".55"/>
+  <path d="M44 22h11" stroke="#dcfce7" stroke-width="2" stroke-linecap="round"/>
+</svg>
